@@ -120,40 +120,50 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <script type="text/babel" data-presets="react">
   const { useState, useEffect } = React;
 
-  // ─── Auth gate ────────────────────────────────────────────────────────────────
-  const AUTH_KEY = 'dinesmart-admin-token';
+  // ─── Supabase ─────────────────────────────────────────────────────────────────
+  let _sb = null;
+  async function initSb() {
+    if (_sb) return _sb;
+    const r = await fetch('/api/config');
+    const { supabaseUrl, supabaseAnonKey } = await r.json();
+    if (!supabaseUrl) throw new Error('SUPABASE_URL not configured. Add it to Vercel Environment Variables.');
+    _sb = supabase.createClient(supabaseUrl, supabaseAnonKey);
+    return _sb;
+  }
 
-  const LoginGate = ({ onAuth }) => {
-    const [pw,  setPw]  = useState('');
-    const [err, setErr] = useState('');
-    const [loading, setLoading] = useState(false);
+  // ─── Data mappers ─────────────────────────────────────────────────────────────
+  const hallFromDb = r => ({ id:r.id, name:r.name, location:r.location||'', hours:r.hours||'', allergenFreeStation:r.allergen_free_station||'' });
+  const hallToDb   = h => ({ id:h.id, name:h.name, location:h.location||'', hours:h.hours||'', allergen_free_station:h.allergenFreeStation||'' });
+  const itemFromDb = r => ({ id:r.id, hallId:r.hall_id, dishName:r.dish_name, ingredients:r.ingredients||'', allergens:r.allergens||[], crossContactAllergens:r.cross_contact_allergens||[], dietaryLabels:r.dietary_labels||[], station:r.station||'', mealPeriod:r.meal_period||'Lunch', calories:r.calories||'', proteinG:r.protein_g||'' });
+  const itemToDb   = (item, hallId, date) => ({ id:item.id, hall_id:hallId, menu_date:date, dish_name:item.dishName, ingredients:item.ingredients||'', allergens:item.allergens||[], cross_contact_allergens:item.crossContactAllergens||[], dietary_labels:item.dietaryLabels||[], station:item.station||'', meal_period:item.mealPeriod||'Lunch', calories:item.calories?parseInt(item.calories):null, protein_g:item.proteinG?parseFloat(item.proteinG):null });
 
-    const submit = async e => {
-      e.preventDefault();
-      setErr(''); setLoading(true);
-      try {
-        const res = await fetch('/api/admin-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pw }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          sessionStorage.setItem(AUTH_KEY, data.token);
-          onAuth();
-        } else {
-          setErr(data.error || 'Incorrect password.');
-          setPw('');
-        }
-      } catch {
-        setErr('Could not reach server. Try again.');
-      } finally {
-        setLoading(false);
-      }
+  // ─── Login Gate (Supabase Auth) ───────────────────────────────────────────────
+  const LoginGate = ({ sb }) => {
+    const [email,     setEmail]     = useState('');
+    const [pw,        setPw]        = useState('');
+    const [err,       setErr]       = useState('');
+    const [loading,   setLoading]   = useState(false);
+    const [mode,      setMode]      = useState('login');
+    const [resetSent, setResetSent] = useState(false);
+
+    const login = async e => {
+      e.preventDefault(); setErr(''); setLoading(true);
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      setLoading(false);
+      if (error) { setErr(error.message); setPw(''); }
+    };
+
+    const sendReset = async e => {
+      e.preventDefault(); setErr(''); setLoading(true);
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.href });
+      setLoading(false);
+      if (error) setErr(error.message);
+      else setResetSent(true);
     };
 
     return (
@@ -164,20 +174,45 @@
             <h1 style={{fontSize:22,color:'var(--text-1)',marginBottom:4}}>Admin Portal</h1>
             <p style={{fontSize:13,color:'var(--text-2)'}}>Harvard University Dining Services</p>
           </div>
-          <form onSubmit={submit} style={{display:'grid',gap:14}}>
-            <div>
-              <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>Admin Password</p>
-              <input
-                className="inp" type="password" placeholder="Enter admin password"
-                value={pw} onChange={e=>{setPw(e.target.value);setErr('');}}
-                autoFocus required
-              />
+          {resetSent ? (
+            <div style={{textAlign:'center',display:'grid',gap:12}}>
+              <p style={{fontSize:14,color:'var(--text-1)'}}>Check your inbox for a password reset link.</p>
+              <button type="button" onClick={()=>{setMode('login');setResetSent(false);}} className="btn btn-ghost" style={{width:'100%'}}>Back to Sign In</button>
             </div>
-            {err && <p style={{fontSize:12.5,color:'#dc2626',fontWeight:600,margin:0}}>{err}</p>}
-            <button type="submit" className="btn btn-primary" style={{width:'100%'}} disabled={loading||!pw}>
-              {loading ? 'Verifying…' : 'Sign In'}
-            </button>
-          </form>
+          ) : mode === 'login' ? (
+            <form onSubmit={login} style={{display:'grid',gap:14}}>
+              <div>
+                <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>Email</p>
+                <input className="inp" type="email" placeholder="admin@example.com" value={email} onChange={e=>{setEmail(e.target.value);setErr('');}} autoFocus required />
+              </div>
+              <div>
+                <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>Password</p>
+                <input className="inp" type="password" placeholder="••••••••" value={pw} onChange={e=>{setPw(e.target.value);setErr('');}} required />
+              </div>
+              {err && <p style={{fontSize:12.5,color:'#dc2626',fontWeight:600,margin:0}}>{err}</p>}
+              <button type="submit" className="btn btn-primary" style={{width:'100%'}} disabled={loading||!email||!pw}>
+                {loading ? 'Signing in…' : 'Sign In'}
+              </button>
+              <button type="button" onClick={()=>setMode('reset')} style={{background:'none',border:'none',color:'var(--accent)',fontSize:12.5,cursor:'pointer',fontWeight:600,textAlign:'center',padding:0}}>
+                Forgot password?
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={sendReset} style={{display:'grid',gap:14}}>
+              <p style={{fontSize:13,color:'var(--text-2)',margin:0}}>Enter your email and we'll send a reset link.</p>
+              <div>
+                <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>Email</p>
+                <input className="inp" type="email" placeholder="admin@example.com" value={email} onChange={e=>{setEmail(e.target.value);setErr('');}} autoFocus required />
+              </div>
+              {err && <p style={{fontSize:12.5,color:'#dc2626',fontWeight:600,margin:0}}>{err}</p>}
+              <button type="submit" className="btn btn-primary" style={{width:'100%'}} disabled={loading||!email}>
+                {loading ? 'Sending…' : 'Send Reset Email'}
+              </button>
+              <button type="button" onClick={()=>setMode('login')} style={{background:'none',border:'none',color:'var(--accent)',fontSize:12.5,cursor:'pointer',fontWeight:600,textAlign:'center',padding:0}}>
+                Back to sign in
+              </button>
+            </form>
+          )}
           <p style={{fontSize:11,color:'var(--text-3)',textAlign:'center',margin:0}}>
             Student? <a href="index.html" style={{color:'var(--accent)'}}>Go to student view →</a>
           </p>
@@ -186,47 +221,15 @@
     );
   };
 
-  // ─── Shared constants (mirrors index.html) ────────────────────────────────────
+  // ─── Shared constants ─────────────────────────────────────────────────────────
   const ALLERGENS       = ['Wheat/Gluten','Milk/Dairy','Eggs','Tree Nuts','Peanuts','Soy','Fish','Shellfish','Sesame','Sulfites'];
   const ANAPHYLAXIS_RISK= new Set(['Peanuts','Tree Nuts','Fish','Shellfish','Sesame']);
   const DIETARY_LABELS  = ['Vegetarian','Vegan','Halal','Kosher','Low-Carb','High-Protein','Gluten-Free','Nut-Free'];
   const MEAL_PERIODS    = ['Breakfast','Lunch','Dinner','All Day','Brain Break'];
 
-  const TODAY    = new Date().toISOString().split('T')[0];
-  const MENU_KEY = `dining-menus-${TODAY}`;
-  const HALLS_KEY= 'dining-halls';
-  const BRAND_VER= 'harvard-v2';
-
-  if (localStorage.getItem('dinesmart-brand') !== BRAND_VER) {
-    localStorage.removeItem(HALLS_KEY);
-    localStorage.removeItem(MENU_KEY);
-    localStorage.setItem('dinesmart-brand', BRAND_VER);
-  }
-
-  const store = {
-    get: k => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):null; } catch { return null; } },
-    set: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} },
-  };
-
-  const uid = () => Math.random().toString(36).slice(2,10);
+  const TODAY   = new Date().toISOString().split('T')[0];
+  const uid     = () => Math.random().toString(36).slice(2,10);
   const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-  // ─── Seed data (keep in sync with index.html) ─────────────────────────────────
-  const SEED_HALLS = [
-    { id:'h1',  name:'Annenberg Hall',               location:'Memorial Hall, 45 Quincy St, Cambridge, MA 02138',     hours:'Mon–Fri 7:30am–8:00pm · Sat–Sun 9:00am–7:00pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h2',  name:'Adams House Dining Hall',       location:'26 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h3',  name:'Cabot House Dining Hall',       location:'Moors Hall, 60 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h4',  name:'Currier House Dining Hall',     location:'Moors Hall, 64 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h5',  name:'Dunster House Dining Hall',     location:'945 Memorial Dr, Cambridge, MA 02138',                 hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h6',  name:'Eliot House Dining Hall',       location:'101 Dunster St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h7',  name:'Kirkland House Dining Hall',    location:'95 Dunster St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h8',  name:'Leverett House Dining Hall',    location:'28 DeWolfe St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h9',  name:'Lowell House Dining Hall',      location:'10 Holyoke Place, Cambridge, MA 02138',                hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h10', name:'Mather House Dining Hall',      location:'10 Cowperthwaite St, Cambridge, MA 02138',             hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h11', name:'Pforzheimer House Dining Hall', location:'56 Linnaean St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h12', name:'Quincy House Dining Hall',      location:'58 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-    { id:'h13', name:'Winthrop House Dining Hall',    location:'Gore Hall, Mill St, Cambridge, MA 02138',              hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
-  ];
 
   // ─── Shared small components ──────────────────────────────────────────────────
   const FieldLabel = ({ children }) => (
@@ -396,15 +399,34 @@
   };
 
   // ─── Admin View ───────────────────────────────────────────────────────────────
-  const AdminView = ({ halls, menus, setHalls, setMenus }) => {
+  const AdminView = ({ sb, halls, menus, setHalls, setMenus }) => {
     const [tab, setTab] = useState('halls');
     const [hid, setHid] = useState(halls[0]?.id||'');
 
-    const addHall    = h    => { const u=[...halls,h]; setHalls(u); store.set(HALLS_KEY,u); setHid(h.id); setTab('menu'); };
-    const rmHall     = id   => { const u=halls.filter(h=>h.id!==id); setHalls(u); store.set(HALLS_KEY,u); if(hid===id)setHid(u[0]?.id||''); const nm={...menus}; delete nm[id]; setMenus(nm); store.set(MENU_KEY,nm); };
-    const addItem    = item => { const u={...menus,[hid]:[...(menus[hid]||[]),item]}; setMenus(u); store.set(MENU_KEY,u); };
-    const rmItem     = id   => { const u={...menus,[hid]:(menus[hid]||[]).filter(i=>i.id!==id)}; setMenus(u); store.set(MENU_KEY,u); };
-    const bulkImport = items=> { const u={...menus,[hid]:[...(menus[hid]||[]),...items]}; setMenus(u); store.set(MENU_KEY,u); };
+    const addHall = async h => {
+      const { data, error } = await sb.from('halls').insert(hallToDb(h)).select().single();
+      if (!error) { const hall = hallFromDb(data); setHalls(prev=>[...prev,hall]); setHid(hall.id); setTab('menu'); }
+    };
+    const rmHall = async id => {
+      await sb.from('halls').delete().eq('id', id);
+      const next = halls.filter(h=>h.id!==id);
+      setHalls(next);
+      setMenus(prev=>{ const m={...prev}; delete m[id]; return m; });
+      if (hid===id) setHid(next[0]?.id||'');
+    };
+    const addItem = async item => {
+      const { data, error } = await sb.from('menu_items').insert(itemToDb(item, hid, TODAY)).select().single();
+      if (!error) setMenus(prev=>({...prev,[hid]:[...(prev[hid]||[]),itemFromDb(data)]}));
+    };
+    const rmItem = async id => {
+      await sb.from('menu_items').delete().eq('id', id);
+      setMenus(prev=>({...prev,[hid]:(prev[hid]||[]).filter(i=>i.id!==id)}));
+    };
+    const bulkImport = async items => {
+      const rows = items.map(i=>itemToDb(i, hid, TODAY));
+      const { data, error } = await sb.from('menu_items').insert(rows).select();
+      if (!error) setMenus(prev=>({...prev,[hid]:[...(prev[hid]||[]),...(data||[]).map(itemFromDb)]}));
+    };
 
     const selHall  = halls.find(h=>h.id===hid);
     const selItems = menus[hid]||[];
@@ -464,7 +486,7 @@
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
                 <div style={{display:'grid',gap:16}}>
                   <MenuItemForm onAdd={addItem} />
-                  <BulkImportForm hallId={hid} onImport={bulkImport} />
+                        <BulkImportForm hallId={hid} onImport={bulkImport} />
                 </div>
                 <div style={{display:'grid',gap:10}}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
@@ -512,11 +534,60 @@
 
   // ─── App ──────────────────────────────────────────────────────────────────────
   const App = () => {
-    const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_KEY));
-    const [halls, setHalls] = useState(()=>{ const s=store.get(HALLS_KEY); if(s&&s.length>0)return s; store.set(HALLS_KEY,SEED_HALLS); return SEED_HALLS; });
-    const [menus, setMenus] = useState(()=>{ const s=store.get(MENU_KEY); if(s&&Object.keys(s).length>0)return s; return {}; });
+    const [sb,      setSb]      = useState(null);
+    const [user,    setUser]    = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [initErr, setInitErr] = useState('');
+    const [halls,   setHalls]   = useState([]);
+    const [menus,   setMenus]   = useState({});
 
-    if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
+    // Init Supabase + auth state
+    useEffect(() => {
+      initSb().then(client => {
+        setSb(client);
+        client.auth.getSession().then(({ data: { session } }) => {
+          setUser(session?.user || null);
+          setLoading(false);
+        });
+        client.auth.onAuthStateChange((_, session) => {
+          setUser(session?.user || null);
+        });
+      }).catch(e => { setInitErr(e.message); setLoading(false); });
+    }, []);
+
+    // Load data when authenticated
+    useEffect(() => {
+      if (!sb || !user) return;
+      Promise.all([
+        sb.from('halls').select('*').order('name'),
+        sb.from('menu_items').select('*').eq('menu_date', TODAY).order('created_at'),
+      ]).then(([{ data: hd }, { data: md }]) => {
+        setHalls((hd||[]).map(hallFromDb));
+        const m = {};
+        (md||[]).forEach(r => { const item=itemFromDb(r); if(!m[item.hallId])m[item.hallId]=[]; m[item.hallId].push(item); });
+        setMenus(m);
+      });
+    }, [sb, user]);
+
+    const signOut = async () => { await sb.auth.signOut(); setHalls([]); setMenus({}); };
+
+    if (loading) return (
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
+        <p style={{color:'var(--text-2)',fontSize:14}}>Loading…</p>
+      </div>
+    );
+
+    if (initErr) return (
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:24}}>
+        <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:12,padding:24,maxWidth:420,textAlign:'center'}}>
+          <p style={{fontSize:15,color:'#991b1b',fontWeight:700,marginBottom:8}}>Configuration Error</p>
+          <p style={{fontSize:13,color:'#991b1b',marginBottom:8}}>{initErr}</p>
+          <p style={{fontSize:12,color:'#7f1d1d'}}>Add <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> to Vercel → Settings → Environment Variables.</p>
+        </div>
+      </div>
+    );
+
+    if (!user) return <LoginGate sb={sb} />;
 
     return (
       <div style={{minHeight:'100vh',background:'var(--bg)'}}>
@@ -532,8 +603,14 @@
                 <p style={{fontSize:10.5,color:'#94a3b8',margin:0,lineHeight:1}}>Harvard University Dining Services</p>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <span style={{fontSize:12,color:'#64748b'}}>{fmtDate(TODAY)}</span>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:11.5,color:'#64748b',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{user.email}</span>
+              <button onClick={signOut}
+                style={{fontSize:12,fontWeight:600,color:'#94a3b8',background:'none',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,padding:'5px 12px',cursor:'pointer',transition:'all .15s'}}
+                onMouseOver={e=>{e.currentTarget.style.color='#fff';e.currentTarget.style.borderColor='rgba(255,255,255,.3)';}}
+                onMouseOut={e=>{e.currentTarget.style.color='#94a3b8';e.currentTarget.style.borderColor='rgba(255,255,255,.12)';}}>
+                Sign out
+              </button>
               <a href="index.html"
                 style={{fontSize:12.5,fontWeight:600,color:'#94a3b8',textDecoration:'none',padding:'6px 14px',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,transition:'all .15s'}}
                 onMouseOver={e=>{e.currentTarget.style.color='#ffffff';e.currentTarget.style.borderColor='rgba(255,255,255,.3)';}}
@@ -546,7 +623,7 @@
 
         {/* ── Admin notice ── */}
         <div style={{background:'#fef2f2',borderBottom:'1px solid #fecaca',padding:'7px 22px',textAlign:'center',fontSize:12,color:'#991b1b',fontWeight:500}}>
-          <strong>Admin Portal</strong> — Changes apply immediately · Accessible to students on the student view · Handle allergen data with care
+          <strong>Admin Portal</strong> — Changes saved to Supabase · Visible to students immediately · Handle allergen data with care
         </div>
 
         {/* ── Content ── */}
@@ -555,11 +632,11 @@
             <h1 style={{fontSize:28,color:'var(--text-1)',marginBottom:6}}>Admin Dashboard</h1>
             <p style={{fontSize:14,color:'var(--text-2)'}}>Harvard University Dining Services (HUDS) · Manage halls, menus, and allergen data</p>
           </div>
-          <AdminView halls={halls} menus={menus} setHalls={setHalls} setMenus={setMenus} />
+          <AdminView sb={sb} halls={halls} menus={menus} setHalls={setHalls} setMenus={setMenus} />
         </main>
 
         <footer style={{borderTop:'1px solid var(--border)',padding:'20px 22px',textAlign:'center'}}>
-          <p style={{fontSize:12,color:'var(--text-3)'}}>DineSmart Admin · Harvard University Dining Services · All changes saved to local storage · <a href="index.html" style={{color:'var(--text-3)'}}>← Back to Student View</a> · <a href="privacy.html" style={{color:'var(--text-3)'}}>Privacy Policy</a> · <a href="terms.html" style={{color:'var(--text-3)'}}>Terms of Service</a></p>
+          <p style={{fontSize:12,color:'var(--text-3)'}}>DineSmart Admin · Harvard University Dining Services · All changes saved to Supabase · <a href="index.html" style={{color:'var(--text-3)'}}>← Back to Student View</a> · <a href="privacy.html" style={{color:'var(--text-3)'}}>Privacy Policy</a> · <a href="terms.html" style={{color:'var(--text-3)'}}>Terms of Service</a></p>
         </footer>
       </div>
     );

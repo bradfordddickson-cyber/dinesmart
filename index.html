@@ -214,9 +214,25 @@
 <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
 <script type="text/babel" data-presets="react">
   const { useState, useEffect } = React;
+
+  // ─── Supabase ─────────────────────────────────────────────────────────────────
+  let _sb = null;
+  async function initSb() {
+    if (_sb) return _sb;
+    try {
+      const r = await fetch('/api/config');
+      const { supabaseUrl, supabaseAnonKey } = await r.json();
+      if (!supabaseUrl) return null;
+      _sb = supabase.createClient(supabaseUrl, supabaseAnonKey);
+      return _sb;
+    } catch { return null; }
+  }
+  const hallFromDb = r => ({ id:r.id, name:r.name, location:r.location||'', hours:r.hours||'', allergenFreeStation:r.allergen_free_station||'' });
+  const itemFromDb = r => ({ id:r.id, hallId:r.hall_id, dishName:r.dish_name, ingredients:r.ingredients||'', allergens:r.allergens||[], crossContactAllergens:r.cross_contact_allergens||[], dietaryLabels:r.dietary_labels||[], station:r.station||'', mealPeriod:r.meal_period||'Lunch', calories:r.calories||'', proteinG:r.protein_g||'' });
 
   // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -1137,13 +1153,12 @@
 
   // ─── Student View ─────────────────────────────────────────────────────────────
 
-  const StudentView = ({ halls, menus }) => {
+  const StudentView = ({ halls, menus, viewDate, setViewDate }) => {
     const [prefs,        setPrefs]        = useState(()=>{ const s=store.get(PREFS_KEY); return s?{allergens:[],dietary:[],notes:'',diet:'',...s}:{allergens:[],dietary:[],notes:'',diet:''}; });
     const [showOnlySafe, setShowOnlySafe] = useState(false);
     const [search,       setSearch]       = useState('');
     const [expanded,     setExpanded]     = useState({});
     const [selectedHall, setSelectedHall] = useState(() => halls[0]?.id || '');
-    const [viewDate,     setViewDate]     = useState(TODAY);
 
     useEffect(() => { store.set(PREFS_KEY,prefs); }, [prefs]);
 
@@ -1376,8 +1391,25 @@
   // ─── App ──────────────────────────────────────────────────────────────────────
 
   const App = () => {
-    const [halls, setHalls] = useState(()=>{ const s=store.get(HALLS_KEY); if(s&&s.length>0)return s; store.set(HALLS_KEY,SEED_HALLS); return SEED_HALLS; });
-    const [menus, setMenus] = useState(()=>{ const s=store.get(MENU_KEY); if(s&&Object.keys(s).length>0)return s; store.set(MENU_KEY,SEED_MENUS); return SEED_MENUS; });
+    const [halls,    setHalls]    = useState(SEED_HALLS);
+    const [menus,    setMenus]    = useState(SEED_MENUS);
+    const [viewDate, setViewDate] = useState(TODAY);
+
+    // Load halls + menus from Supabase; fall back to seed data if not configured
+    useEffect(() => {
+      initSb().then(sb => {
+        if (!sb) return;
+        Promise.all([
+          sb.from('halls').select('*').order('name'),
+          sb.from('menu_items').select('*').eq('menu_date', viewDate).order('created_at'),
+        ]).then(([{ data: hd }, { data: md }]) => {
+          if (hd && hd.length > 0) setHalls(hd.map(hallFromDb));
+          const m = {};
+          (md||[]).forEach(r => { const item=itemFromDb(r); if(!m[item.hallId])m[item.hallId]=[]; m[item.hallId].push(item); });
+          setMenus(m);
+        });
+      });
+    }, [viewDate]);
 
     return (
       <div style={{minHeight:'100vh',background:'var(--bg)'}}>
@@ -1413,7 +1445,7 @@
 
         {/* ── Page content ── */}
         <main id="main-content" style={{maxWidth:980,margin:'0 auto',padding:'36px 22px 80px'}}>
-          <StudentView halls={halls} menus={menus} />
+          <StudentView halls={halls} menus={menus} viewDate={viewDate} setViewDate={setViewDate} />
         </main>
 
         {/* ── Footer ── */}
