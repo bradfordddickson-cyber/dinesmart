@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DineSmart — Harvard College Dining</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body   { font-family: 'DM Sans', system-ui, sans-serif; background: #f7f6f3; color: #1c1917; line-height: 1.5; }
+    h1,h2,h3,h4 { font-family: 'Playfair Display', Georgia, serif; line-height: 1.2; }
+    textarea, input, select, button { font-family: 'DM Sans', system-ui, sans-serif; }
+
+    /* ── Design tokens ────────────────────────────────────────── */
+    :root {
+      --bg:          #f8f9fa;
+      --surface:     #ffffff;
+      --surface-2:   #f1f5f9;
+      --primary:     #0f172a;
+      --primary-mid: #1e293b;
+      --accent:      #A51C30;
+      --accent-2:    #7f1524;
+      --accent-pale: #fff1f2;
+      --text-1:      #111827;
+      --text-2:      #6b7280;
+      --text-3:      #9ca3af;
+      --border:      #e5e7eb;
+      --border-2:    #d1d5db;
+      --shadow-sm:   0 1px 2px rgba(0,0,0,.05);
+      --shadow:      0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+      --shadow-md:   0 4px 6px rgba(0,0,0,.07), 0 10px 30px rgba(0,0,0,.09);
+      --radius-sm:   8px;
+      --radius:      12px;
+      --radius-lg:   18px;
+      --radius-xl:   24px;
+    }
+
+    /* ── Scrollbar ────────────────────────────────────────────── */
+    ::-webkit-scrollbar        { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track  { background: var(--surface-2); }
+    ::-webkit-scrollbar-thumb  { background: var(--border-2); border-radius: 3px; }
+
+    /* ── Animations ───────────────────────────────────────────── */
+    .fade-in { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+    .spin { animation: spin .85s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Typography helpers ───────────────────────────────────── */
+    .label {
+      font-size: 11px; font-weight: 700; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--text-2);
+    }
+    .label-accent { color: var(--accent); }
+
+    /* ── Surface / card ───────────────────────────────────────── */
+    .surface {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+    }
+    .surface-2 {
+      background: var(--surface-2);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    /* ── Dish states ──────────────────────────────────────────── */
+    .dish-danger  { opacity: .38; }
+    .dish-caution { opacity: .65; }
+
+    /* ── AI output ────────────────────────────────────────────── */
+    .ai-prose { white-space: pre-wrap; line-height: 1.9; font-size: 14px; color: var(--text-1); }
+
+    /* ── Inputs ───────────────────────────────────────────────── */
+    .inp {
+      width: 100%; padding: 9px 13px; font-size: 13.5px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text-1);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(165,28,48,.13); }
+    .inp::placeholder { color: var(--text-3); }
+
+    /* ── Allergen pills ───────────────────────────────────────── */
+    .pill-a {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: #fef2f2; color: #991b1b; border: 1.5px solid #fecaca;
+      border-radius: 9999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .15s; white-space: nowrap;
+    }
+    .pill-a:hover { border-color: #f87171; }
+    .pill-a.on    { background: #dc2626; color: #fff; border-color: #b91c1c; }
+
+    /* ── Dietary pills ────────────────────────────────────────── */
+    .pill-d {
+      display: inline-flex; align-items: center;
+      background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0;
+      border-radius: 9999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all .15s; white-space: nowrap;
+    }
+    .pill-d:hover { border-color: #4ade80; }
+    .pill-d.on    { background: #16a34a; color: #fff; border-color: #15803d; }
+
+    /* ── Static badges ────────────────────────────────────────── */
+    .badge-a  { display:inline-flex; align-items:center; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .badge-d  { display:inline-flex; align-items:center; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .badge-cc { display:inline-flex; align-items:center; background:#fdf2f4; color:#7f1524; border:1px solid #f5b8c0; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+
+    /* ── Buttons ──────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: none; cursor: pointer; font-weight: 600; font-size: 13.5px;
+      border-radius: 9999px; padding: 10px 22px;
+      transition: all .15s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--accent); color: #ffffff; }
+    .btn-primary:hover { background: var(--accent-2); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: var(--primary); color: #f1f5f9; }
+    .btn-secondary:hover { opacity: .88; }
+    .btn-ghost { background: var(--surface-2); color: var(--text-1); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--border-2); }
+    .btn-danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fee2e2; }
+
+    /* ── Toggle switch ────────────────────────────────────────── */
+    .toggle-track { width: 40px; height: 22px; border-radius: 11px; flex-shrink: 0; position: relative; cursor: pointer; border: none; transition: background .2s; }
+    .toggle-thumb { position: absolute; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: left .2s; box-shadow: 0 1px 3px rgba(0,0,0,.22); }
+
+    /* ── Section divider ──────────────────────────────────────── */
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    /* ── Tab bar ──────────────────────────────────────────────── */
+    .tab-bar { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 9999px; width: fit-content; border: 1px solid var(--border); }
+    .tab-btn {
+      border: none; border-radius: 9999px; padding: 7px 20px;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .tab-btn.active   { background: var(--accent); color: #ffffff; box-shadow: var(--shadow-sm); }
+    .tab-btn.inactive { background: transparent; color: var(--text-2); }
+    .tab-btn.inactive:hover { color: var(--text-1); }
+
+    /* ── Accessibility ─────────────────────────────────────────────── */
+    .skip-link {
+      position: absolute; top: -48px; left: 16px; z-index: 999;
+      background: var(--accent); color: #fff; padding: 8px 16px;
+      font-size: 14px; font-weight: 600; border-radius: 0 0 8px 8px;
+      transition: top .15s; text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+    *:focus-visible {
+      outline: 2.5px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+    /* Remove default outline in favor of focus-visible */
+    *:focus:not(:focus-visible) { outline: none; }
+
+    /* ── Day nav ──────────────────────────────────────────────────── */
+    .day-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--surface); cursor: pointer; transition: all .15s; min-width: 52px;
+    }
+    .day-btn:hover { border-color: var(--accent); }
+    .day-btn.today-active { border-color: var(--accent); background: var(--accent-pale); }
+    .day-btn .day-name { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }
+    .day-btn .day-num  { font-size: 16px; font-weight: 700; color: var(--text-1); line-height: 1; }
+    .day-btn.today-active .day-name,
+    .day-btn.today-active .day-num  { color: var(--accent); }
+
+    /* ── Pilot banner ─────────────────────────────────────────────── */
+    .pilot-banner {
+      background: #fffbeb; border-bottom: 1px solid #fde68a;
+      padding: 7px 22px; text-align: center;
+      font-size: 12px; color: #78350f; font-weight: 500;
+    }
+
+    /* ── Smooth scroll ─────────────────────────────────────────────── */
+    html { scroll-behavior: smooth; }
+    [data-section] { scroll-margin-top: 115px; }
+
+    /* ── Section nav ───────────────────────────────────────────────── */
+    .section-nav {
+      position: sticky; top: 60px; z-index: 40;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    }
+    .section-nav-inner {
+      max-width: 980px; margin: 0 auto; padding: 0 10px;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .section-nav-inner::-webkit-scrollbar { display: none; }
+    .snav-link {
+      display: flex; align-items: center; gap: 6px;
+      padding: 14px 20px; font-size: 13px; font-weight: 600;
+      color: var(--text-2); text-decoration: none;
+      border-bottom: 2.5px solid transparent;
+      transition: all .15s; white-space: nowrap; flex-shrink: 0;
+    }
+    .snav-link:hover { color: var(--text-1); }
+    .snav-active { color: var(--accent) !important; border-bottom-color: var(--accent) !important; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+  const { useState, useEffect } = React;
+
+  // ─── Constants ──────────────────────────────────────────────────────────────
+
+  const ALLERGENS = [
+    'Wheat/Gluten','Milk/Dairy','Eggs','Tree Nuts','Peanuts',
+    'Soy','Fish','Shellfish','Sesame','Sulfites',
+  ];
+  const ANAPHYLAXIS_RISK = new Set(['Peanuts','Tree Nuts','Fish','Shellfish','Sesame']);
+
+  const ALLERGEN_INFO = {
+    'Wheat/Gluten': 'Wheat, barley, rye, spelt, kamut, triticale. Also covers gluten in oats.',
+    'Milk/Dairy':   'Cow, goat & sheep milk; cheese, butter, cream, casein, whey.',
+    'Eggs':         'Chicken eggs and egg-derived ingredients (albumin, lysozyme).',
+    'Tree Nuts':    'Almonds, cashews, walnuts, pecans, pistachios, hazelnuts, macadamia, Brazil nuts.',
+    'Peanuts':      'A legume — not a tree nut. Found in many Asian dishes, sauces, and baked goods.',
+    'Soy':          'Soybeans, tofu, tempeh, miso, edamame, soy sauce, tamari.',
+    'Fish':         'Salmon, tuna, cod, halibut, tilapia, anchovies, and other finfish.',
+    'Shellfish':    'Shrimp, lobster, crab, crayfish, scallops, oysters, clams, mussels.',
+    'Sesame':       "FDA's 9th major allergen (FASTER Act, Jan 2023). Includes tahini, sesame oil, and benne.",
+    'Sulfites':     'Found in wine, dried fruits, pickled foods, some condiments. Triggers asthma in sensitive individuals.',
+  };
+
+  const DIETARY_LABELS = ['Vegetarian','Vegan','Halal','Kosher','Low-Carb','High-Protein','Gluten-Free','Nut-Free'];
+
+  const MEAL_PERIODS = ['Breakfast','Lunch','Dinner','All Day','Brain Break'];
+  const MEAL_COLORS  = {
+    Breakfast:    { bg:'#fef9ee', text:'#7f1524', border:'#f5b8c0' },
+    Lunch:        { bg:'#eff6ff', text:'#1d4ed8', border:'#bfdbfe' },
+    Dinner:       { bg:'#f5f3ff', text:'#6d28d9', border:'#ddd6fe' },
+    'All Day':    { bg:'#f0fdf4', text:'#15803d', border:'#bbf7d0' },
+    'Brain Break':{ bg:'#fff7ed', text:'#9a3412', border:'#fed7aa' },
+  };
+
+  const DIET_MODES = [
+    { id:'mediterranean', icon:'🫒', name:'Mediterranean', tagline:'#1 ranked diet overall',        desc:'Fish, vegetables, legumes, whole grains, and olive oil. Heart-healthy and anti-inflammatory.',            preferLabels:['Vegetarian','High-Protein'], avoidAllergens:[], note:"Look for fish dishes, veggie bowls, and legume-based options." },
+    { id:'keto',          icon:'🥩', name:'Ketogenic',      tagline:'Most searched diet 2025',       desc:'Very low-carb, high-fat, moderate protein. Cuts bread, pasta, rice, and sugar.',                        preferLabels:['Low-Carb','High-Protein'],   avoidAllergens:[], note:'Focus on grilled proteins, eggs, and non-starchy vegetables.' },
+    { id:'dash',          icon:'🫐', name:'DASH',           tagline:'Best for heart health',         desc:'Dietary Approaches to Stop Hypertension. Low sodium, rich in fruits, vegetables, and lean protein.',    preferLabels:['Vegetarian','High-Protein'], avoidAllergens:[], note:'Prioritize plant-forward dishes and lean proteins. Avoid high-sodium options.' },
+    { id:'plantbased',    icon:'🌿', name:'Plant-Based',    tagline:'Best for the planet',           desc:'Whole plant foods — vegetables, fruits, grains, legumes, nuts, and seeds. Minimal or no animal products.',preferLabels:['Vegan','Vegetarian'],        avoidAllergens:[], note:"Any Vegan or Vegetarian dish fits. Look for protein-rich legume options." },
+    { id:'highprotein',   icon:'💪', name:'High-Protein',   tagline:'21% of students — rising fast', desc:'Athletic-performance eating. Prioritizes protein at every meal for muscle growth and lasting satiety.',   preferLabels:['High-Protein'],             avoidAllergens:[], note:'Aim for 30g+ protein per meal. Great for post-workout recovery.' },
+    { id:'antiinflam',    icon:'🌾', name:'Anti-Inflammatory',tagline:'Trending for gut health',    desc:'Colorful vegetables, fatty fish, berries, nuts, and olive oil. Avoids ultra-processed foods.',            preferLabels:['Vegan','Vegetarian','High-Protein'], avoidAllergens:[], note:'Fish, leafy greens, and legume bowls are ideal.' },
+    { id:'paleo',         icon:'🍖', name:'Paleo',           tagline:'Whole, unprocessed foods',     desc:'Meat, fish, eggs, vegetables, fruit, and nuts — no grains, dairy, or legumes.',                         preferLabels:['High-Protein','Low-Carb'],   avoidAllergens:['Wheat/Gluten','Milk/Dairy','Soy'], note:'Stick to grilled proteins and roasted veg. Skip the bread, rice, and noodle bowls.' },
+    { id:'if',            icon:'⏱', name:'Intermittent Fasting',tagline:'Popular for weight management',desc:'No food restrictions — timing is key. When eating, choose nutrient-dense, satisfying meals.',       preferLabels:['High-Protein','Low-Carb'],   avoidAllergens:[], note:'Choose high-protein, high-fiber dishes to stay full longer.' },
+  ];
+
+  const TODAY     = new Date().toISOString().split('T')[0];
+  const MENU_KEY  = `dining-menus-${TODAY}`;
+  const HALLS_KEY = 'dining-halls';
+  const PREFS_KEY = 'student-prefs';
+  const AKEY_KEY  = 'dinesmart-apikey';
+  const BRAND_VER = 'harvard-v2'; // bump this to force-reset seed data
+
+  // One-time seed reset when university brand changes
+  if (localStorage.getItem('dinesmart-brand') !== BRAND_VER) {
+    localStorage.removeItem(HALLS_KEY);
+    localStorage.removeItem(MENU_KEY);
+    localStorage.setItem('dinesmart-brand', BRAND_VER);
+  }
+
+  // ─── Storage ────────────────────────────────────────────────────────────────
+
+  const store = {
+    get: k => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):null; } catch { return null; } },
+    set: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} },
+  };
+  window.storage = store;
+
+  // ─── Seed data ──────────────────────────────────────────────────────────────
+
+  const SEED_HALLS = [
+    { id:'h1',  name:'Annenberg Hall',               location:'Memorial Hall, 45 Quincy St, Cambridge, MA 02138',     hours:'Mon–Fri 7:30am–8:00pm · Sat–Sun 9:00am–7:00pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h2',  name:'Adams House Dining Hall',       location:'26 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h3',  name:'Cabot House Dining Hall',       location:'Moors Hall, 60 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h4',  name:'Currier House Dining Hall',     location:'Moors Hall, 64 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h5',  name:'Dunster House Dining Hall',     location:'945 Memorial Dr, Cambridge, MA 02138',                 hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h6',  name:'Eliot House Dining Hall',       location:'101 Dunster St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h7',  name:'Kirkland House Dining Hall',    location:'95 Dunster St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h8',  name:'Leverett House Dining Hall',    location:'28 DeWolfe St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h9',  name:'Lowell House Dining Hall',      location:'10 Holyoke Place, Cambridge, MA 02138',                hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h10', name:'Mather House Dining Hall',      location:'10 Cowperthwaite St, Cambridge, MA 02138',             hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h11', name:'Pforzheimer House Dining Hall', location:'56 Linnaean St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h12', name:'Quincy House Dining Hall',      location:'58 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h13', name:'Winthrop House Dining Hall',    location:'Gore Hall, Mill St, Cambridge, MA 02138',              hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+  ];
+
+  const mi = (id,dishName,ingredients,allergens,dietaryLabels,station,mealPeriod,calories,proteinG,crossContactAllergens=[]) =>
+    ({id,dishName,ingredients,allergens,dietaryLabels,station,mealPeriod,calories:calories||'',proteinG:proteinG||'',crossContactAllergens});
+
+  // All Harvard undergraduate houses share the same HUDS menu (FoodPro system).
+  // Menu data sourced from foodpro.huds.harvard.edu for March 9, 2026.
+  const _sharedMenu = [
+    // ── Breakfast ────────────────────────────────────────────────────────────────
+    mi('b01','Belgian Waffles',                  'Enriched flour, eggs, whole milk, butter, vanilla, baking powder',                                   ['Wheat/Gluten','Milk/Dairy','Eggs'],         ['Vegetarian'],                        'Home Plate',      'Breakfast', 480, 9,  []),
+    mi('b02','Scrambled Cage Free Eggs',         'Cage-free eggs, whole milk, butter',                                                                  ['Eggs','Milk/Dairy'],                        ['Vegetarian'],                        'Home Plate',      'Breakfast', 190,14,  []),
+    mi('b03','Chicken Sausage',                  'Chicken, spices, natural casing',                                                                     [],                                           ['High-Protein'],                      'Home Plate',      'Breakfast', 160,14,  []),
+    mi('b04','Plant Protein Breakfast Sausage',  'Soy protein, spices, canola oil',                                                                     ['Soy'],                                      ['Vegan','High-Protein'],              'Simple Servings', 'Breakfast', 130,12,  []),
+    mi('b05','Tofu Scramble',                    'Firm tofu, turmeric, nutritional yeast, bell pepper, spinach, onion',                                  ['Soy'],                                      ['Vegan','Vegetarian','High-Protein'], 'Simple Servings', 'Breakfast', 180,14,  []),
+    mi('b06','Steel Cut Oatmeal',                'Steel-cut oats, water, salt',                                                                         ['Wheat/Gluten'],                             ['Vegan','Vegetarian'],                'Home Plate',      'Breakfast', 170, 6,  []),
+    mi('b07','Shredded Hashbrowns',              'Potatoes, canola oil, salt',                                                                          [],                                           ['Vegan','Vegetarian','Gluten-Free'],  'Home Plate',      'Breakfast', 220, 3,  []),
+    mi('b08','Chia Pudding with Oat Milk',       'Chia seeds, oat milk, maple syrup, vanilla',                                                          ['Soy'],                                      ['Vegan','Vegetarian'],                'Simple Servings', 'Breakfast', 220, 5,  []),
+    mi('b09','Cinnamon Roll',                    'Enriched flour, butter, whole milk, eggs, brown sugar, cinnamon, cream cheese icing',                 ['Wheat/Gluten','Milk/Dairy','Eggs'],         ['Vegetarian'],                        'Bakery',          'Breakfast', 370, 6,  []),
+    // ── Lunch ────────────────────────────────────────────────────────────────────
+    mi('l01','Tomato Basil Soup',                'Tomatoes, basil, onion, garlic, olive oil, vegetable broth',                                          [],                                           ['Vegan','Vegetarian','Gluten-Free'],  'Soup & Bread',    'Lunch',     130, 3,  []),
+    mi('l02','Lasagna Soup with Chicken Sausage','Chicken sausage, lasagna noodles, tomato, ricotta, parmesan, basil',                                   ['Wheat/Gluten','Milk/Dairy'],                [],                                    'Soup & Bread',    'Lunch',     310,18,  []),
+    mi('l03','Grilled Chicken Breast',           'Chicken breast, olive oil, garlic, rosemary, lemon',                                                  [],                                           ['High-Protein','Gluten-Free'],        'The Grill',       'Lunch',     260,48,  []),
+    mi('l04','Buffalo Chicken Wings',            'Chicken wings, buffalo sauce (cayenne, vinegar, butter)',                                              ['Milk/Dairy'],                               ['High-Protein'],                      'The Grill',       'Lunch',     390,34,  []),
+    mi('l05','Philly Cheese Steak Sub',          'Shaved beef, provolone cheese, sautéed onions & peppers, hoagie roll',                                 ['Wheat/Gluten','Milk/Dairy'],                [],                                    'Deli',            'Lunch',     580,34,  []),
+    mi('l06','Vegan Chorizo Quesadilla',         'Flour tortilla, vegan chorizo, black beans, bell pepper, salsa',                                       ['Wheat/Gluten'],                             ['Vegan','Vegetarian'],                'World Cuisine',   'Lunch',     450,18,  ['Soy']),
+    mi('l07','Halal Buffalo Chicken Tenders',    'Halal chicken tenders, buffalo sauce, canola oil',                                                     [],                                           ['High-Protein','Halal'],              'The Grill',       'Lunch',     320,30,  []),
+    mi('l08','Sweet Potato Fries',               'Sweet potato, canola oil, sea salt',                                                                  [],                                           ['Vegan','Vegetarian','Gluten-Free'],  'The Grill',       'Lunch',     200, 2,  []),
+    mi('l09','Warm Buttermilk Cornbread',        'Cornmeal, all-purpose flour, buttermilk, eggs, butter, honey',                                         ['Wheat/Gluten','Milk/Dairy','Eggs'],         ['Vegetarian'],                        'Bakery',          'Lunch',     280, 5,  []),
+    mi('l10','Beef Stew',                        'Beef chuck, potatoes, carrots, celery, onion, beef broth, thyme',                                     [],                                           ['High-Protein','Gluten-Free'],        'Home Plate',      'Lunch',     380,28,  ['Wheat/Gluten']),
+    // ── Dinner ───────────────────────────────────────────────────────────────────
+    mi('d01','Gochujang Chicken',                'Chicken thigh, gochujang, soy sauce, sesame oil, garlic, ginger',                                      ['Soy','Wheat/Gluten','Sesame'],              ['High-Protein'],                      'World Cuisine',   'Dinner',    380,32,  []),
+    mi('d02','Korean Beef Bulgogi',              'Thinly sliced beef, soy sauce, sesame oil, pear, garlic, ginger, green onion',                         ['Soy','Wheat/Gluten','Sesame'],              ['High-Protein'],                      'World Cuisine',   'Dinner',    420,36,  []),
+    mi('d03','Fermented Chile & Sesame Tofu',    'Firm tofu, gochugaru, sesame oil, sesame seeds, shiitake mushrooms, soy sauce',                        ['Soy','Sesame'],                             ['Vegan','Vegetarian','High-Protein'], 'Simple Servings', 'Dinner',    290,20,  []),
+    mi('d04','Korean Halal Beef Bulgogi',        'Halal beef, soy sauce, sesame oil, pear, garlic, ginger, green onion',                                 ['Soy','Wheat/Gluten','Sesame'],              ['High-Protein','Halal'],              'The Grill',       'Dinner',    420,36,  []),
+    mi('d05','Grilled Burger',                   'Ground beef patty, lettuce, tomato, onion, pickles, burger bun',                                       ['Wheat/Gluten'],                             ['High-Protein'],                      'The Grill',       'Dinner',    560,34,  ['Milk/Dairy','Eggs']),
+    mi('d06','Crimson Vegan Burger',             'Plant-based patty, lettuce, tomato, pickles, vegan mayo, brioche-style bun',                           ['Wheat/Gluten','Soy'],                       ['Vegan','Vegetarian','High-Protein'], 'The Grill',       'Dinner',    490,22,  []),
+    mi('d07','Nashville Hot Chicken Sandwich',   'Fried chicken breast, hot spice paste, pickles, brioche bun',                                          ['Wheat/Gluten','Eggs','Milk/Dairy'],         ['High-Protein'],                      'The Grill',       'Dinner',    620,36,  []),
+    mi('d08','Grilled Cheese Sandwich',          'Sourdough bread, cheddar & American cheese, butter',                                                   ['Wheat/Gluten','Milk/Dairy'],                ['Vegetarian'],                        'Deli',            'Dinner',    430,16,  []),
+    mi('d09','French Fries',                     'Russet potatoes, canola oil, salt',                                                                    [],                                           ['Vegan','Vegetarian','Gluten-Free'],  'The Grill',       'Dinner',    310, 4,  []),
+    mi('d10','Sticky Rice',                      'Short-grain white rice, water',                                                                        [],                                           ['Vegan','Vegetarian','Gluten-Free'],  'World Cuisine',   'Dinner',    200, 4,  []),
+    mi('d11','Sautéed Kale with Sesame & Sambal','Curly kale, sesame oil, sesame seeds, sambal oelek, garlic',                                           ['Sesame'],                                   ['Vegan','Vegetarian','Gluten-Free'],  'Simple Servings', 'Dinner',     80, 4,  []),
+    mi('d12','Apple Pie',                        'Apples, enriched flour, butter, sugar, cinnamon',                                                      ['Wheat/Gluten','Milk/Dairy'],                ['Vegetarian'],                        'Bakery',          'Dinner',    410, 4,  []),
+    mi('d13','Hood Vanilla Ice Cream',           'Cream, skim milk, sugar, vanilla extract, carob bean gum',                                             ['Milk/Dairy'],                               ['Vegetarian','Gluten-Free'],          'Bakery',          'Dinner',    150, 3,  []),
+    mi('d14','Marinara Spaghetti',               'Spaghetti, San Marzano tomatoes, garlic, basil, olive oil',                                            ['Wheat/Gluten'],                             ['Vegan','Vegetarian'],                'Pasta Bar',       'Dinner',    380,12,  []),
+    // ── Brain Break ──────────────────────────────────────────────────────────────
+    mi('br1','Pound Cake',                       'Enriched flour, butter, eggs, sugar, vanilla, baking powder',                                          ['Wheat/Gluten','Milk/Dairy','Eggs'],         ['Vegetarian'],                        'Bakery',          'Brain Break',320, 5,  []),
+  ];
+
+  // Map the shared menu to every hall
+  const SEED_MENUS = Object.fromEntries(
+    SEED_HALLS.map(h => [h.id, _sharedMenu.map((item, i) => ({...item, id: `${h.id}-${item.id}`}))])
+  );
+
+  // ─── Helpers ────────────────────────────────────────────────────────────────
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const getDishFlags = (item, allergens) => {
+    const direct = allergens.some(a => item.allergens.includes(a));
+    const cross  = !direct && allergens.some(a => (item.crossContactAllergens||[]).includes(a));
+    return { direct, cross };
+  };
+
+  const getDietMatch = (item, dietId) => {
+    if (!dietId) return false;
+    const mode = DIET_MODES.find(d => d.id === dietId);
+    if (!mode) return false;
+    if (mode.avoidAllergens.some(a => item.allergens.includes(a))) return false;
+    if (mode.preferLabels.some(l => item.dietaryLabels.includes(l))) return true;
+    if (dietId === 'highprotein' && Number(item.proteinG) >= 25) return true;
+    return false;
+  };
+
+  // ─── Disclaimer modal ────────────────────────────────────────────────────────
+
+  const DISC_KEY = 'dinesmart-disclaimer-v1';
+
+  const DisclaimerModal = () => {
+    const [open, setOpen] = useState(() => !localStorage.getItem(DISC_KEY));
+    const dismiss = () => { localStorage.setItem(DISC_KEY,'1'); setOpen(false); };
+    if (!open) return null;
+    return (
+      <div role="dialog" aria-modal="true" aria-labelledby="disc-title"
+        style={{position:'fixed',inset:0,background:'rgba(15,23,42,.65)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:200,padding:20}}>
+        <div style={{background:'var(--surface)',borderRadius:20,padding:32,maxWidth:480,width:'100%',boxShadow:'var(--shadow-md)'}}>
+          <p id="disc-title" style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:21,color:'var(--text-1)',marginBottom:18}}>Before you begin</p>
+          <div style={{display:'grid',gap:11,marginBottom:22}}>
+            <div style={{background:'#fffbeb',border:'1px solid #fde68a',borderRadius:10,padding:'12px 14px'}}>
+              <p style={{fontSize:13,color:'#78350f',margin:0,lineHeight:1.6}}>
+                <strong>Demo Pilot Version.</strong> This is not an official Harvard University product. All menu and allergen data are for demonstration purposes and may not reflect current HUDS offerings.
+              </p>
+            </div>
+            <div style={{background:'#fef2f2',border:'1px solid #fecaca',borderRadius:10,padding:'12px 14px'}}>
+              <p style={{fontSize:13,color:'#991b1b',margin:0,lineHeight:1.6}}>
+                <strong>Not for medical use.</strong> Always verify allergen information directly with HUDS dining staff before consuming any food. This app does not replace professional dietary or medical advice.
+              </p>
+            </div>
+            <p style={{fontSize:12,color:'var(--text-2)',margin:0,lineHeight:1.65}}>
+              Allergen data referenced from Harvard University Dining Services (HUDS) FoodPro system. AI recommendations powered by Claude (Anthropic). For emergencies, contact HUHS at (617) 495-5711.
+            </p>
+          </div>
+          <button onClick={dismiss} className="btn btn-primary" style={{width:'100%',borderRadius:12,padding:'12px 0',fontSize:14}}>
+            I understand — Continue to DineSmart
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Week navigation ─────────────────────────────────────────────────────────
+
+  const addDays = (dateStr, n) => {
+    const d = new Date(dateStr + 'T12:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().split('T')[0];
+  };
+
+  const getWeekDays = (anchorDate) => {
+    const d = new Date(anchorDate + 'T12:00:00');
+    const mon = new Date(d);
+    mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));   // Monday of that week
+    return Array.from({length:7}, (_,i) => {
+      const day = new Date(mon);
+      day.setDate(mon.getDate() + i);
+      return day.toISOString().split('T')[0];
+    });
+  };
+
+  const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const WeekNav = ({ viewDate, setViewDate }) => {
+    const week = getWeekDays(viewDate);
+    const prevWeek = () => setViewDate(d => addDays(d, -7));
+    const nextWeek = () => setViewDate(d => addDays(d,  7));
+    return (
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:14,padding:'14px 16px',boxShadow:'var(--shadow-sm)'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+          <button onClick={prevWeek} aria-label="Previous week"
+            style={{background:'var(--surface-2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:13,fontWeight:600,color:'var(--text-2)'}}>← Prev</button>
+          <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:14,color:'var(--text-1)',margin:0}}>
+            Week of {new Date(week[0]+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric'})}
+          </p>
+          <button onClick={nextWeek} aria-label="Next week"
+            style={{background:'var(--surface-2)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontSize:13,fontWeight:600,color:'var(--text-2)'}}>Next →</button>
+        </div>
+        <div style={{display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap'}}>
+          {week.map((date, i) => {
+            const isToday  = date === TODAY;
+            const isActive = date === viewDate;
+            const day = new Date(date + 'T12:00:00');
+            return (
+              <button key={date} onClick={() => setViewDate(date)}
+                aria-label={`View menu for ${fmtDate(date)}`}
+                aria-pressed={isActive}
+                className={`day-btn ${isActive ? 'today-active' : ''}`}
+                style={{fontWeight: isActive ? 700 : 400}}>
+                <span className="day-name">{DAY_NAMES[i]}</span>
+                <span className="day-num">{day.getDate()}</span>
+                {isToday && <span style={{width:5,height:5,borderRadius:'50%',background:'var(--accent)',display:'block',margin:'1px auto 0'}} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+        {viewDate !== TODAY && (
+          <p style={{fontSize:11.5,color:'var(--text-3)',textAlign:'center',marginTop:10,fontStyle:'italic'}}>
+            Showing demo data — live HUDS sync coming in v1.0
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  // ─── Shared small components ─────────────────────────────────────────────────
+
+  const MealBadge = ({ period }) => {
+    const c = MEAL_COLORS[period] || MEAL_COLORS['All Day'];
+    return (
+      <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:9999,padding:'2px 9px',fontSize:11,fontWeight:600,whiteSpace:'nowrap'}}>
+        {period}
+      </span>
+    );
+  };
+
+  const SectionLabel = ({ children, accent }) => (
+    <p className={`label ${accent ? 'label-accent' : ''}`} style={{marginBottom:10}}>{children}</p>
+  );
+
+  const FieldLabel = ({ children }) => (
+    <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>{children}</p>
+  );
+
+  // ─── Allergen Reference ──────────────────────────────────────────────────────
+
+  const AllergenReference = () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <div style={{border:'1px solid var(--border)',borderRadius:12,overflow:'hidden',background:'var(--surface)'}}>
+        <button onClick={() => setOpen(o => !o)}
+          style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'none',border:'none',cursor:'pointer'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:16}}>📋</span>
+            <span style={{fontSize:13,fontWeight:600,color:'var(--text-1)'}}>Allergen Quick Reference</span>
+            <span style={{background:'#fef3c7',color:'#7f1524',border:'1px solid #f5b8c0',borderRadius:9999,padding:'1px 8px',fontSize:10,fontWeight:700}}>FDA Top 9</span>
+          </div>
+          <span style={{fontSize:10,color:'var(--text-3)',transition:'transform .2s',display:'inline-block',transform:open?'rotate(180deg)':'none'}}>▼</span>
+        </button>
+        {open && (
+          <div className="fade-in" style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 20px'}}>
+            {ALLERGENS.map(a => (
+              <div key={a} style={{display:'flex',gap:8,alignItems:'flex-start'}}>
+                <span className="badge-a" style={{flexShrink:0,marginTop:1}}>{ANAPHYLAXIS_RISK.has(a)?'⚠ ':''}{a}</span>
+                <p style={{fontSize:11,color:'var(--text-2)',lineHeight:1.55,margin:0}}>{ALLERGEN_INFO[a]}</p>
+              </div>
+            ))}
+            <div style={{gridColumn:'1/-1',background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:9,padding:'9px 12px'}}>
+              <p style={{fontSize:11,color:'#7f1524',margin:0,lineHeight:1.6}}>
+                <strong>⚠ Higher anaphylaxis risk:</strong> Peanuts, Tree Nuts, Fish, Shellfish, and Sesame. Always carry your epinephrine auto-injector and inform dining staff of your allergies.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── Emergency Card ───────────────────────────────────────────────────────────
+
+  const EmergencyCard = () => {
+    const [open, setOpen] = useState(false);
+    return (
+      <div style={{border:'1px solid #f5b8c0',borderRadius:12,overflow:'hidden',background:'#fdf2f4'}}>
+        <button onClick={() => setOpen(o => !o)}
+          style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'11px 16px',background:'none',border:'none',cursor:'pointer'}}>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <span style={{fontSize:16}}>🚨</span>
+            <span style={{fontSize:13,fontWeight:600,color:'#7f1524'}}>Allergic Reaction — Emergency Info</span>
+          </div>
+          <span style={{fontSize:10,color:'#7f1524',display:'inline-block',transform:open?'rotate(180deg)':'none',transition:'transform .2s'}}>▼</span>
+        </button>
+        {open && (
+          <div className="fade-in" style={{padding:'0 16px 16px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div style={{background:'var(--surface)',borderRadius:9,padding:'12px 14px',border:'1px solid #f5b8c0'}}>
+              <p style={{fontWeight:700,fontSize:12,color:'#7f1524',marginBottom:7}}>Signs of Anaphylaxis</p>
+              <ul style={{fontSize:12,color:'#6b1422',paddingLeft:15,lineHeight:1.75}}>
+                <li>Throat tightening / difficulty breathing</li>
+                <li>Swelling of lips, tongue, or throat</li>
+                <li>Sudden hives or skin flushing</li>
+                <li>Dizziness or loss of consciousness</li>
+                <li>Severe nausea, vomiting, or cramps</li>
+              </ul>
+            </div>
+            <div style={{background:'var(--surface)',borderRadius:9,padding:'12px 14px',border:'1px solid #f5b8c0'}}>
+              <p style={{fontWeight:700,fontSize:12,color:'#7f1524',marginBottom:7}}>What To Do</p>
+              <ol style={{fontSize:12,color:'#6b1422',paddingLeft:15,lineHeight:1.75}}>
+                <li><strong>Use your EpiPen</strong> immediately if prescribed</li>
+                <li><strong>Call 911</strong> — always, even after using EpiPen</li>
+                <li>Lie down, legs elevated (sit up if breathing is hard)</li>
+                <li>Alert dining staff and stay with someone</li>
+              </ol>
+            </div>
+            <div style={{gridColumn:'1/-1',background:'#dc2626',borderRadius:9,padding:'11px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+              <div>
+                <p style={{fontWeight:700,fontSize:13,color:'white',marginBottom:2}}>Harvard University Health Services (HUHS)</p>
+                <p style={{fontSize:12,color:'#fecaca'}}>Urgent Care 24/7 · 75 Mt. Auburn St, Cambridge, MA 02138</p>
+              </div>
+              <p style={{fontWeight:800,fontSize:18,color:'white',letterSpacing:1}}>(617) 495-5711</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── Safety Stats ─────────────────────────────────────────────────────────────
+
+  const SafetyStats = ({ halls, menus, allergens, showOnlySafe, setShowOnlySafe, diet }) => {
+    const all      = halls.flatMap(h => menus[h.id] || []);
+    const direct   = all.filter(i => getDishFlags(i, allergens).direct).length;
+    const cross    = all.filter(i => getDishFlags(i, allergens).cross).length;
+    const safe     = all.length - direct - cross;
+    const dietPicks= diet ? all.filter(i => getDietMatch(i, diet) && !getDishFlags(i, allergens).direct).length : null;
+    const dietMode = diet ? DIET_MODES.find(d => d.id === diet) : null;
+
+    if (allergens.length === 0 && !diet) {
+      return (
+        <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:17}}>✅</span>
+          <p style={{fontSize:13,color:'#15803d',margin:0}}>
+            <strong>No allergens selected</strong> — all {all.length} dishes are shown. Select allergens above to personalize your safety view.
+          </p>
+        </div>
+      );
+    }
+
+    const Stat = ({ value, label, color }) => (
+      <div style={{textAlign:'center',minWidth:60}}>
+        <p style={{fontSize:26,fontWeight:800,color,margin:0,fontFamily:'Playfair Display, serif',lineHeight:1}}>{value}</p>
+        <p style={{fontSize:10.5,color,margin:'4px 0 0',fontWeight:600,opacity:.8}}>{label}</p>
+      </div>
+    );
+
+    return (
+      <div style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:14,padding:'14px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:14,boxShadow:'var(--shadow-sm)'}}>
+        <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
+          <Stat value={safe}       label="Safe dishes"        color="#15803d" />
+          <div style={{width:1,height:36,background:'var(--border)',margin:'0 6px'}} />
+          <Stat value={direct}     label="Contains allergen"  color="#dc2626" />
+          <div style={{width:1,height:36,background:'var(--border)',margin:'0 6px'}} />
+          <Stat value={cross}      label="Cross-contact risk" color="#A51C30" />
+          <div style={{width:1,height:36,background:'var(--border)',margin:'0 6px'}} />
+          <Stat value={all.length} label="Total today"        color="var(--text-2)" />
+          {dietMode && dietPicks !== null && (
+            <>
+              <div style={{width:1,height:36,background:'var(--border)',margin:'0 6px'}} />
+              <Stat value={dietPicks} label={`${dietMode.name} picks`} color="#7f1524" />
+            </>
+          )}
+        </div>
+        <button onClick={() => setShowOnlySafe(s => !s)}
+          style={{
+            background: showOnlySafe ? '#16a34a' : 'var(--surface-2)',
+            color: showOnlySafe ? 'white' : 'var(--text-1)',
+            border: showOnlySafe ? '1.5px solid #15803d' : '1.5px solid var(--border)',
+            borderRadius: 9999, padding: '8px 18px', fontWeight: 600, fontSize: 13,
+            cursor: 'pointer', transition: 'all .2s', display: 'flex', alignItems: 'center', gap: 6,
+          }}>
+          {showOnlySafe ? '✓ Safe dishes only' : '🔍 Show safe only'}
+        </button>
+      </div>
+    );
+  };
+
+  // ─── Dish Card ────────────────────────────────────────────────────────────────
+
+  const DishCard = ({ item, allergens, allergenFreeStation, diet }) => {
+    const { direct, cross } = getDishFlags(item, allergens);
+    const isSafeStation     = allergenFreeStation && item.station === allergenFreeStation;
+    const isDietMatch       = getDietMatch(item, diet);
+    const dietMode          = diet ? DIET_MODES.find(d => d.id === diet) : null;
+    const myCC              = (item.crossContactAllergens||[]).filter(a => allergens.includes(a));
+
+    const bg     = direct ? '#fef2f2' : cross ? '#fdf2f4' : 'var(--surface)';
+    const border = direct ? '1.5px solid #fecaca' : cross ? '1.5px solid #f5b8c0' : '1px solid var(--border)';
+    const dim    = direct ? 'dish-danger' : cross ? 'dish-caution' : '';
+
+    return (
+      <div className={dim} style={{background:bg,border,borderRadius:14,padding:'14px 16px',transition:'all .2s'}}>
+
+        {/* Header row */}
+        <div style={{display:'flex',justifyContent:'space-between',gap:8,marginBottom:8}}>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,alignItems:'center',marginBottom:4}}>
+              <span style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:14.5,color:'var(--text-1)'}}>{item.dishName}</span>
+              {isSafeStation && <span style={{background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',borderRadius:9999,padding:'1px 8px',fontSize:10,fontWeight:700}}>✓ Allergen-Free Station</span>}
+              {isDietMatch && dietMode && <span style={{background:'var(--accent-pale)',color:'var(--accent)',border:'1px solid #f5b8c0',borderRadius:9999,padding:'1px 8px',fontSize:10,fontWeight:700}}>{dietMode.icon} {dietMode.name}</span>}
+            </div>
+            <p style={{fontSize:11,fontWeight:600,color:'var(--accent-2)',marginBottom:4}}>{item.station}</p>
+            <p style={{fontSize:12.5,color:'var(--text-2)',lineHeight:1.55}}>{item.ingredients}</p>
+          </div>
+          <div style={{flexShrink:0}}><MealBadge period={item.mealPeriod} /></div>
+        </div>
+
+        {/* Warnings */}
+        {direct && (
+          <div style={{background:'#fee2e2',border:'1px solid #fca5a5',borderRadius:8,padding:'6px 11px',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:12}}>🚫</span>
+            <p style={{fontSize:11.5,color:'#dc2626',fontWeight:600,margin:0}}>Contains your allergens: {item.allergens.filter(a=>allergens.includes(a)).join(', ')}</p>
+          </div>
+        )}
+        {cross && myCC.length > 0 && (
+          <div style={{background:'#fdf2f4',border:'1px solid #f5b8c0',borderRadius:8,padding:'6px 11px',marginBottom:8,display:'flex',alignItems:'center',gap:6}}>
+            <span style={{fontSize:12}}>⚠️</span>
+            <p style={{fontSize:11.5,color:'#7f1524',fontWeight:600,margin:0}}>Cross-contact risk: {myCC.join(', ')} — prepared in a shared kitchen</p>
+          </div>
+        )}
+
+        {/* Nutrition */}
+        {(item.calories || item.proteinG) && (
+          <div style={{display:'flex',gap:14,marginBottom:8}}>
+            {item.calories  && <span style={{fontSize:11.5,color:'var(--text-2)',fontWeight:500}}>🔥 {item.calories} cal</span>}
+            {item.proteinG  && <span style={{fontSize:11.5,color:'var(--text-2)',fontWeight:500}}>💪 {item.proteinG}g protein</span>}
+          </div>
+        )}
+
+        {/* Badges */}
+        <div style={{paddingTop:10,borderTop:'1px solid var(--border)'}}>
+          {(item.allergens.length > 0 || (item.crossContactAllergens||[]).length > 0 || item.dietaryLabels.length > 0) && (
+            <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:8}}>
+              {item.allergens.map(a => <span key={a} className="badge-a">{ANAPHYLAXIS_RISK.has(a)?'⚠ ':''}{a}</span>)}
+              {(item.crossContactAllergens||[]).map(a => <span key={a} className="badge-cc">~{a}</span>)}
+              {item.dietaryLabels.map(d => <span key={d} className="badge-d">{d}</span>)}
+            </div>
+          )}
+          <p style={{fontSize:10,color:'var(--text-3)',margin:0}}>Source: HUDS FoodPro · Verify with dining staff before consuming</p>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Admin: Hall Form ─────────────────────────────────────────────────────────
+
+  const HallForm = ({ onAdd }) => {
+    const [form, setForm] = useState({name:'',location:'',hours:'',allergenFreeStation:''});
+    const set = k => e => setForm(f => ({...f,[k]:e.target.value}));
+    const submit = e => {
+      e.preventDefault();
+      if (!form.name.trim()) return;
+      onAdd({id:uid(),...form});
+      setForm({name:'',location:'',hours:'',allergenFreeStation:''});
+    };
+    return (
+      <form onSubmit={submit} className="surface" style={{padding:22,display:'grid',gap:13}}>
+        <h3 style={{fontSize:16,color:'var(--text-1)',margin:0}}>Add New Dining Hall</h3>
+        {[
+          ['name',               'Hall Name *',          'e.g. The Great Hall'],
+          ['location',           'Location',             'e.g. Main Building, Ground Floor'],
+          ['hours',              'Hours',                'e.g. Mon–Fri 7am–9pm · Weekends 9am–7pm'],
+          ['allergenFreeStation','Allergen-Free Station','e.g. Fuel Bar (leave blank if none)'],
+        ].map(([k,label,ph]) => (
+          <div key={k}>
+            <FieldLabel>{label}</FieldLabel>
+            <input className="inp" placeholder={ph} value={form[k]} onChange={set(k)} />
+          </div>
+        ))}
+        <button type="submit" className="btn btn-primary" style={{width:'100%',marginTop:2}}>+ Add Dining Hall</button>
+      </form>
+    );
+  };
+
+  // ─── Admin: Menu Item Form ────────────────────────────────────────────────────
+
+  const MenuItemForm = ({ onAdd }) => {
+    const blank = {dishName:'',ingredients:'',allergens:[],crossContactAllergens:[],dietaryLabels:[],station:'',mealPeriod:'Lunch',calories:'',proteinG:''};
+    const [form, setForm] = useState(blank);
+    const toggle = (field,val) => setForm(f=>({...f,[field]:f[field].includes(val)?f[field].filter(x=>x!==val):[...f[field],val]}));
+    const submit = e => { e.preventDefault(); if(!form.dishName.trim())return; onAdd({id:uid(),...form}); setForm(blank); };
+
+    return (
+      <form onSubmit={submit} className="surface" style={{padding:22,display:'grid',gap:16}}>
+        <h3 style={{fontSize:16,color:'var(--text-1)',margin:0}}>Add Menu Item</h3>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:11}}>
+          <div style={{gridColumn:'1/-1'}}>
+            <FieldLabel>Dish Name *</FieldLabel>
+            <input className="inp" placeholder="e.g. Grilled Salmon Fillet" value={form.dishName} onChange={e=>setForm(f=>({...f,dishName:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Station</FieldLabel>
+            <input className="inp" placeholder="e.g. Grill Station" value={form.station} onChange={e=>setForm(f=>({...f,station:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Meal Period</FieldLabel>
+            <select className="inp" value={form.mealPeriod} onChange={e=>setForm(f=>({...f,mealPeriod:e.target.value}))}>
+              {MEAL_PERIODS.map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>Calories (optional)</FieldLabel>
+            <input className="inp" type="number" placeholder="e.g. 450" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Protein g (optional)</FieldLabel>
+            <input className="inp" type="number" placeholder="e.g. 32" value={form.proteinG} onChange={e=>setForm(f=>({...f,proteinG:e.target.value}))} />
+          </div>
+          <div style={{gridColumn:'1/-1'}}>
+            <FieldLabel>Ingredients</FieldLabel>
+            <textarea className="inp" style={{resize:'none'}} rows={2} placeholder="e.g. Flour, eggs, butter, vanilla…" value={form.ingredients} onChange={e=>setForm(f=>({...f,ingredients:e.target.value}))} />
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Contains Allergens (direct)</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {ALLERGENS.map(a=>(
+              <button key={a} type="button" onClick={()=>toggle('allergens',a)} className={`pill-a ${form.allergens.includes(a)?'on':''}`}>
+                {ANAPHYLAXIS_RISK.has(a)?'⚠ ':''}{a}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Cross-Contact Risk — "May Contain" (shared equipment)</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {ALLERGENS.map(a=>{
+              const on = form.crossContactAllergens.includes(a);
+              return (
+                <button key={a} type="button" onClick={()=>toggle('crossContactAllergens',a)}
+                  style={{display:'inline-flex',alignItems:'center',background:on?'#A51C30':'#fdf2f4',color:on?'white':'#7f1524',border:`1.5px solid ${on?'#7f1524':'#f5b8c0'}`,borderRadius:9999,padding:'4px 12px',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all .15s'}}>
+                  ~{a}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{fontSize:11,color:'var(--text-3)',marginTop:5}}>Cross-contact means the allergen is not an ingredient but may have come into contact during preparation.</p>
+        </div>
+
+        <div>
+          <FieldLabel>Dietary Labels</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {DIETARY_LABELS.map(d=>(
+              <button key={d} type="button" onClick={()=>toggle('dietaryLabels',d)} className={`pill-d ${form.dietaryLabels.includes(d)?'on':''}`}>{d}</button>
+            ))}
+          </div>
+        </div>
+
+        <button type="submit" className="btn btn-secondary" style={{width:'100%'}}>+ Add to Menu</button>
+      </form>
+    );
+  };
+
+  // ─── Admin View ───────────────────────────────────────────────────────────────
+
+  // ─── Admin: Bulk Import ───────────────────────────────────────────────────────
+
+  const BulkImportForm = ({ hallId, onImport }) => {
+    const [raw,    setRaw]    = useState('');
+    const [status, setStatus] = useState(null); // {ok, msg}
+
+    const SAMPLE = JSON.stringify([
+      {dishName:'Grilled Chicken Breast', ingredients:'Chicken breast, olive oil, herbs', allergens:[], crossContactAllergens:[], dietaryLabels:['High-Protein','Gluten-Free'], station:'The Grill', mealPeriod:'Lunch', calories:260, proteinG:48},
+      {dishName:'Steel Cut Oatmeal',      ingredients:'Oats, water, salt',               allergens:['Wheat/Gluten'], crossContactAllergens:[], dietaryLabels:['Vegan'],          station:'Home Plate', mealPeriod:'Breakfast', calories:170, proteinG:6},
+    ], null, 2);
+
+    const run = () => {
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error('Must be a JSON array');
+        const items = parsed.map(i => ({
+          id: uid(),
+          dishName:             String(i.dishName||'').trim(),
+          ingredients:          String(i.ingredients||''),
+          allergens:            Array.isArray(i.allergens)            ? i.allergens            : [],
+          crossContactAllergens:Array.isArray(i.crossContactAllergens)? i.crossContactAllergens: [],
+          dietaryLabels:        Array.isArray(i.dietaryLabels)        ? i.dietaryLabels        : [],
+          station:              String(i.station||''),
+          mealPeriod:           MEAL_PERIODS.includes(i.mealPeriod)   ? i.mealPeriod           : 'Lunch',
+          calories:             i.calories  || '',
+          proteinG:             i.proteinG  || '',
+        })).filter(i => i.dishName);
+        if (items.length === 0) throw new Error('No valid items found');
+        onImport(items);
+        setRaw('');
+        setStatus({ok:true,  msg:`✓ Imported ${items.length} item${items.length!==1?'s':''} successfully`});
+      } catch(e) {
+        setStatus({ok:false, msg:`✗ ${e.message}`});
+      }
+    };
+
+    return (
+      <div className="surface" style={{padding:22,display:'grid',gap:14}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+          <h3 style={{fontSize:15,color:'var(--text-1)',margin:0}}>Bulk Import — JSON</h3>
+          <button type="button" onClick={()=>setRaw(SAMPLE)}
+            style={{fontSize:11.5,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',fontWeight:600,textDecoration:'underline'}}>
+            Load sample JSON
+          </button>
+        </div>
+        <textarea className="inp" rows={9} style={{resize:'vertical',fontFamily:'monospace',fontSize:12}}
+          aria-label="Paste menu JSON array"
+          placeholder={`Paste a JSON array of menu items:\n[\n  {\n    "dishName": "...",\n    "allergens": [...],\n    "mealPeriod": "Lunch",\n    ...\n  }\n]`}
+          value={raw} onChange={e=>{setRaw(e.target.value);setStatus(null);}} />
+        {status && (
+          <p style={{fontSize:12.5,fontWeight:600,color:status.ok?'#15803d':'#dc2626',margin:0}}>{status.msg}</p>
+        )}
+        <button type="button" onClick={run} disabled={!raw.trim()||!hallId} className="btn btn-primary" style={{width:'100%'}}>
+          Import to Selected Hall
+        </button>
+        <p style={{fontSize:11,color:'var(--text-3)',margin:0}}>
+          Required fields: <code>dishName</code>, <code>mealPeriod</code>. Optional: <code>ingredients</code>, <code>allergens</code>, <code>crossContactAllergens</code>, <code>dietaryLabels</code>, <code>station</code>, <code>calories</code>, <code>proteinG</code>.
+        </p>
+      </div>
+    );
+  };
+
+  const AdminView = ({ halls, menus, setHalls, setMenus }) => {
+    const [tab, setTab] = useState('halls');
+    const [hid, setHid] = useState(halls[0]?.id||'');
+
+    const addHall   = h => { const u=[...halls,h]; setHalls(u); store.set(HALLS_KEY,u); setHid(h.id); setTab('menu'); };
+    const rmHall    = id => { const u=halls.filter(h=>h.id!==id); setHalls(u); store.set(HALLS_KEY,u); if(hid===id)setHid(u[0]?.id||''); const nm={...menus}; delete nm[id]; setMenus(nm); store.set(MENU_KEY,nm); };
+    const addItem   = item => { const u={...menus,[hid]:[...(menus[hid]||[]),item]}; setMenus(u); store.set(MENU_KEY,u); };
+    const bulkImport = items => { const u={...menus,[hid]:[...(menus[hid]||[]),...items]}; setMenus(u); store.set(MENU_KEY,u); };
+    const rmItem    = id => { const u={...menus,[hid]:(menus[hid]||[]).filter(i=>i.id!==id)}; setMenus(u); store.set(MENU_KEY,u); };
+
+    const selHall  = halls.find(h=>h.id===hid);
+    const selItems = menus[hid]||[];
+
+    return (
+      <div style={{display:'grid',gap:22}}>
+        <div className="tab-bar" role="tablist" aria-label="Admin sections">
+          <button role="tab" aria-selected={tab==='halls'} className={`tab-btn ${tab==='halls'?'active':'inactive'}`} onClick={()=>setTab('halls')}>Dining Halls</button>
+          <button role="tab" aria-selected={tab==='menu'}  className={`tab-btn ${tab==='menu'?'active':'inactive'}`}  onClick={()=>setTab('menu')}>Today's Menu</button>
+        </div>
+
+        {tab==='halls' && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+            <HallForm onAdd={addHall} />
+            <div style={{display:'grid',gap:10}}>
+              <p style={{fontSize:16,fontFamily:'Playfair Display, serif',fontWeight:700,color:'var(--text-1)'}}>
+                Dining Halls <span style={{fontSize:13,fontWeight:400,color:'var(--text-3)'}}>({halls.length})</span>
+              </p>
+              {halls.length === 0 && <p style={{fontSize:13,color:'var(--text-3)'}}>No halls yet — add one to get started.</p>}
+              {halls.map(h => (
+                <div key={h.id} className="surface" style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:14,color:'var(--text-1)',marginBottom:3}}>{h.name}</p>
+                    <p style={{fontSize:11.5,color:'var(--text-2)',marginBottom:2}}>📍 {h.location}</p>
+                    <p style={{fontSize:11.5,color:'var(--accent-2)',marginBottom:h.allergenFreeStation?4:0}}>⏰ {h.hours}</p>
+                    {h.allergenFreeStation && <span style={{background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',borderRadius:9999,padding:'1px 8px',fontSize:10,fontWeight:700}}>✓ Allergen-Free: {h.allergenFreeStation}</span>}
+                  </div>
+                  <div style={{display:'flex',gap:6,flexShrink:0}}>
+                    <button onClick={()=>{setHid(h.id);setTab('menu');}} className="btn btn-ghost" style={{padding:'6px 12px',fontSize:12,borderRadius:9}}>Edit Menu</button>
+                    <button onClick={()=>rmHall(h.id)} className="btn btn-danger" style={{padding:'6px 12px',fontSize:12,borderRadius:9}}>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab==='menu' && (
+          <div>
+            {/* Hall selector */}
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:18}}>
+              {halls.map(h=>(
+                <button key={h.id} onClick={()=>setHid(h.id)}
+                  style={{
+                    background: hid===h.id?'var(--accent)':'var(--surface)',
+                    color: hid===h.id?'#ffffff':'var(--text-2)',
+                    border: hid===h.id?'1.5px solid var(--accent-2)':'1.5px solid var(--border)',
+                    borderRadius:9999, padding:'7px 18px', fontSize:13, fontWeight:600,
+                    cursor:'pointer', transition:'all .15s',
+                  }}>{h.name}
+                </button>
+              ))}
+            </div>
+
+            {halls.length === 0 ? (
+              <p style={{fontSize:13,color:'var(--text-3)'}}>Add a dining hall first.</p>
+            ) : (
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+                <div style={{display:'grid',gap:16}}>
+                  <MenuItemForm onAdd={addItem} />
+                  <BulkImportForm hallId={hid} onImport={bulkImport} />
+                </div>
+                <div style={{display:'grid',gap:10}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                    <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:15,color:'var(--text-1)'}}>
+                      {selHall?.name}
+                      <span style={{fontSize:12,color:'var(--text-3)',fontWeight:400,fontFamily:'DM Sans, sans-serif',marginLeft:8}}>{fmtDate(TODAY)}</span>
+                    </p>
+                    <span style={{background:'var(--surface-2)',color:'var(--text-2)',borderRadius:8,padding:'4px 10px',fontSize:12,border:'1px solid var(--border)'}}>{selItems.length} items</span>
+                  </div>
+
+                  {selItems.length === 0 ? (
+                    <div style={{borderRadius:14,padding:36,textAlign:'center',border:'2px dashed var(--border)',background:'var(--surface)'}}>
+                      <p style={{fontSize:30,marginBottom:8}}>🍽️</p>
+                      <p style={{fontSize:14,fontFamily:'Playfair Display, serif',color:'var(--text-1)',marginBottom:4}}>No items yet</p>
+                      <p style={{fontSize:13,color:'var(--text-3)'}}>Add menu items using the form on the left.</p>
+                    </div>
+                  ) : (
+                    <div style={{display:'grid',gap:8,maxHeight:560,overflowY:'auto',paddingRight:4}}>
+                      {selItems.map(item=>(
+                        <div key={item.id} className="surface" style={{padding:'11px 13px',display:'flex',alignItems:'flex-start',gap:10}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:6,marginBottom:3}}>
+                              <span style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:13,color:'var(--text-1)'}}>{item.dishName}</span>
+                              <MealBadge period={item.mealPeriod} />
+                            </div>
+                            <p style={{fontSize:11,color:'var(--accent-2)',fontWeight:600,marginBottom:4}}>{item.station}</p>
+                            {(item.calories||item.proteinG) && (
+                              <p style={{fontSize:11,color:'var(--text-3)',marginBottom:4}}>
+                                {item.calories?`🔥${item.calories}cal`:''}{item.calories&&item.proteinG?' · ':''}{item.proteinG?`💪${item.proteinG}g`:''}
+                              </p>
+                            )}
+                            <div style={{display:'flex',flexWrap:'wrap',gap:3}}>
+                              {item.allergens.map(a=><span key={a} className="badge-a">{a}</span>)}
+                              {(item.crossContactAllergens||[]).map(a=><span key={a} className="badge-cc">~{a}</span>)}
+                              {item.dietaryLabels.map(d=><span key={d} className="badge-d">{d}</span>)}
+                            </div>
+                          </div>
+                          <button onClick={()=>rmItem(item.id)} className="btn btn-danger" style={{borderRadius:8,width:28,height:28,padding:0,fontSize:12,flexShrink:0}}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── AI Recommendation ────────────────────────────────────────────────────────
+
+  const AIRecommendation = ({ halls, menus, prefs }) => {
+    const [loading, setLoading] = useState(false);
+    const [result,  setResult]  = useState('');
+    const [error,   setError]   = useState('');
+
+    const run = async () => {
+      setLoading(true); setError(''); setResult('');
+
+      const menuText = halls.map(h => {
+        const items = menus[h.id]||[];
+        if (!items.length) return `${h.name}: No menu posted today.`;
+        return (
+          `${h.name} (${h.location} | Hours: ${h.hours}${h.allergenFreeStation?` | Allergen-Free Station: ${h.allergenFreeStation}`:''})\n`+
+          items.map(i=>
+            `  • ${i.dishName} [${i.mealPeriod}, ${i.station}]`+
+            `${i.calories?` | ${i.calories} cal`:''}`+
+            `${i.proteinG?` | ${i.proteinG}g protein`:''}\n`+
+            `    Ingredients: ${i.ingredients||'—'}\n`+
+            `    Contains: ${i.allergens.join(', ')||'None'}\n`+
+            `    Cross-contact risk: ${(i.crossContactAllergens||[]).join(', ')||'None'}\n`+
+            `    Dietary labels: ${i.dietaryLabels.join(', ')||'None'}`
+          ).join('\n')
+        );
+      }).join('\n\n');
+
+      const dietMode = prefs.diet ? DIET_MODES.find(d=>d.id===prefs.diet) : null;
+
+      const prompt =
+        `You are a warm, expert dining assistant for Harvard University Dining Services (HUDS). Help this student navigate today's menus safely and deliciously.\n\n`+
+        `Student profile:\n`+
+        `- Allergens to STRICTLY AVOID: ${prefs.allergens.length?prefs.allergens.join(', '):'None specified'}\n`+
+        `- Diet mode: ${dietMode?`${dietMode.name} — ${dietMode.desc}`:'None selected'}\n`+
+        `- Dietary preferences: ${prefs.dietary.length?prefs.dietary.join(', '):'None specified'}\n`+
+        `- Additional notes: ${prefs.notes||'None'}\n\n`+
+        `Today's menus (${fmtDate(TODAY)}):\n\n${menuText}\n\n`+
+        `Write a warm, specific, genuinely helpful recommendation. Include:\n`+
+        `1. Which hall(s) to visit and which exact dishes to order — name them explicitly\n`+
+        `2. Nutritional highlights that match their goals${dietMode?` (especially aligned with ${dietMode.name} principles)`:''}\n`+
+        `3. Dishes or halls to avoid because of allergens (direct and cross-contact)\n`+
+        `4. A practical tip on ordering, timing, or what to ask dining staff\n\n`+
+        `Write in warm flowing paragraphs — not numbered lists. 3–4 paragraphs. Be specific, encouraging, and personable.`;
+
+      try {
+        const res = await fetch('/api/recommend',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({messages:[{role:'user',content:prompt}]}),
+        });
+        if (!res.ok){const e=await res.json().catch(()=>({}));throw new Error(e.error?.message||`Error ${res.status}`);}
+        const data=await res.json();
+        setResult(data.content[0].text);
+      } catch(e){
+        setError(e.message||'Something went wrong. Please try again in a moment.');
+      } finally { setLoading(false); }
+    };
+
+    return (
+      <div style={{borderRadius:18,overflow:'hidden',boxShadow:'var(--shadow-md)'}}>
+        {/* Header */}
+        <div style={{padding:'20px 22px',display:'flex',alignItems:'center',gap:14,background:'var(--surface)',borderBottom:'1px solid var(--border)'}}>
+          <div style={{width:46,height:46,borderRadius:13,background:'var(--accent-pale)',border:'1.5px solid #fecdd3',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0}}>✨</div>
+          <div>
+            <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:17,color:'var(--text-1)',margin:0}}>AI Dining Recommendation</p>
+            <p style={{fontSize:12,color:'var(--text-2)',margin:'4px 0 0'}}>Powered by Claude · Scans all halls · Personalized to your profile</p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{padding:'20px 22px',background:'var(--surface)'}}>
+          {!result&&!loading&&!error&&(
+            <p style={{fontSize:13.5,color:'var(--text-2)',marginBottom:18,lineHeight:1.7}}>
+              Set your allergens and preferences above, then tap the button. Claude will scan every hall's menu — including cross-contact risks — and find the best options for your profile.
+            </p>
+          )}
+          {error && (
+            <div style={{background:'#fef2f2',color:'#dc2626',border:'1px solid #fecaca',borderRadius:10,padding:'11px 14px',fontSize:13,marginBottom:16}}>
+              ⚠ {error}
+            </div>
+          )}
+          {loading && (
+            <div style={{display:'flex',alignItems:'center',gap:12,justifyContent:'center',padding:'32px 0'}}>
+              <div className="spin" style={{width:20,height:20,borderRadius:'50%',border:'2.5px solid var(--accent)',borderTopColor:'transparent'}} />
+              <span style={{fontSize:13,color:'var(--text-2)'}}>Scanning today's menus and crafting your recommendation…</span>
+            </div>
+          )}
+          {result && <div className="ai-prose fade-in" style={{marginBottom:18}}>{result}</div>}
+          <button onClick={run} disabled={loading} className="btn btn-primary" style={{width:'100%',fontSize:14}}>
+            {loading ? 'Getting your recommendation…' : result ? '↻ Refresh Recommendation' : '✨ Get My Recommendation'}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // ─── Section nav ─────────────────────────────────────────────────────────────
+
+  const SectionNav = () => {
+    const [active, setActive] = useState('preferences');
+    useEffect(() => {
+      const targets = document.querySelectorAll('[data-section]');
+      const obs = new IntersectionObserver(
+        entries => {
+          const vis = entries.filter(e => e.isIntersecting);
+          if (vis.length) setActive(vis[0].target.dataset.section);
+        },
+        { rootMargin: '-110px 0px -55% 0px', threshold: 0 }
+      );
+      targets.forEach(t => obs.observe(t));
+      return () => obs.disconnect();
+    }, []);
+    const LINKS = [
+      { id:'preferences', label:'My Preferences', icon:'⚙️' },
+      { id:'menu',        label:"Today's Menu",   icon:'🍽️' },
+      { id:'ai',          label:'AI Assistant',   icon:'✨' },
+      { id:'safety',      label:'Safety & Info',  icon:'🛡️' },
+    ];
+    return (
+      <nav className="section-nav" aria-label="Page sections">
+        <div className="section-nav-inner">
+          {LINKS.map(l => (
+            <a key={l.id} href={`#${l.id}`}
+              className={`snav-link ${active===l.id ? 'snav-active' : ''}`}
+              aria-current={active===l.id ? 'location' : undefined}>
+              <span aria-hidden="true">{l.icon}</span>{l.label}
+            </a>
+          ))}
+        </div>
+      </nav>
+    );
+  };
+
+  // ─── Student View ─────────────────────────────────────────────────────────────
+
+  const StudentView = ({ halls, menus }) => {
+    const [prefs,        setPrefs]        = useState(()=>{ const s=store.get(PREFS_KEY); return s?{allergens:[],dietary:[],notes:'',diet:'',...s}:{allergens:[],dietary:[],notes:'',diet:''}; });
+    const [showOnlySafe, setShowOnlySafe] = useState(false);
+    const [search,       setSearch]       = useState('');
+    const [expanded,     setExpanded]     = useState({});
+    const [selectedHall, setSelectedHall] = useState(() => halls[0]?.id || '');
+    const [viewDate,     setViewDate]     = useState(TODAY);
+
+    useEffect(() => { store.set(PREFS_KEY,prefs); }, [prefs]);
+
+    const toggleAllergen = a => setPrefs(p=>({...p,allergens:p.allergens.includes(a)?p.allergens.filter(x=>x!==a):[...p.allergens,a]}));
+    const toggleDietary  = d => setPrefs(p=>({...p,dietary:p.dietary.includes(d)?p.dietary.filter(x=>x!==d):[...p.dietary,d]}));
+
+    const filterItems = items => {
+      let r = [...items];
+      if (search.trim()) { const q=search.toLowerCase(); r=r.filter(i=>i.dishName.toLowerCase().includes(q)||i.ingredients.toLowerCase().includes(q)||i.station.toLowerCase().includes(q)); }
+      if (showOnlySafe) r=r.filter(i=>{const {direct,cross}=getDishFlags(i,prefs.allergens);return !direct&&!cross;});
+      return r;
+    };
+
+    const SectionTitle = ({ children, sub }) => (
+      <div style={{paddingBottom:14,borderBottom:'2px solid var(--border)',marginBottom:4}}>
+        <h2 style={{fontFamily:'Playfair Display, serif',fontSize:21,fontWeight:700,color:'var(--text-1)',margin:0}}>{children}</h2>
+        {sub && <p style={{fontSize:13,color:'var(--text-3)',margin:'4px 0 0',fontWeight:500}}>{sub}</p>}
+      </div>
+    );
+
+    return (
+      <div style={{display:'grid',gap:44}}>
+
+        {/* ══════ 1. MY PREFERENCES ══════ */}
+        <section id="preferences" data-section="preferences" style={{display:'grid',gap:18}}>
+          <SectionTitle sub="Saves automatically · Persists between sessions">My Preferences</SectionTitle>
+          <div className="surface" style={{padding:24,display:'grid',gap:20}}>
+
+          {/* Allergens */}
+          <div>
+            <SectionLabel accent>Allergens to Avoid — FDA Top 9</SectionLabel>
+            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+              {ALLERGENS.map(a=>(
+                <button key={a} onClick={()=>toggleAllergen(a)} className={`pill-a ${prefs.allergens.includes(a)?'on':''}`}>
+                  {ANAPHYLAXIS_RISK.has(a)?'⚠ ':''}{a}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="divider" />
+
+          {/* Dietary preferences */}
+          <div>
+            <SectionLabel accent>Dietary Preferences</SectionLabel>
+            <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+              {DIETARY_LABELS.map(d=>(
+                <button key={d} onClick={()=>toggleDietary(d)} className={`pill-d ${prefs.dietary.includes(d)?'on':''}`}>{d}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="divider" />
+
+          {/* Diet Mode */}
+          <div>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <SectionLabel accent>Diet Mode</SectionLabel>
+              {prefs.diet && (
+                <button onClick={()=>setPrefs(p=>({...p,diet:''}))}
+                  style={{fontSize:12,color:'var(--text-3)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline'}}>
+                  Clear
+                </button>
+              )}
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(190px,1fr))',gap:8}}>
+              {DIET_MODES.map(d=>{
+                const active = prefs.diet===d.id;
+                return (
+                  <button key={d.id} onClick={()=>setPrefs(p=>({...p,diet:active?'':d.id}))}
+                    style={{
+                      background: active?'var(--accent-pale)':'var(--surface)',
+                      border: active?'2px solid var(--accent)':'1.5px solid var(--border)',
+                      borderRadius:12, padding:'11px 13px', textAlign:'left',
+                      cursor:'pointer', transition:'all .15s',
+                      boxShadow: active?'0 2px 12px rgba(165,28,48,.12)':'var(--shadow-sm)',
+                    }}>
+                    <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4}}>
+                      <span style={{fontSize:17}}>{d.icon}</span>
+                      <span style={{fontSize:13,fontWeight:700,color:active?'var(--accent)':'var(--text-1)'}}>{d.name}</span>
+                    </div>
+                    <p style={{fontSize:10,color:'var(--accent-2)',margin:'0 0 4px',fontWeight:700}}>{d.tagline}</p>
+                    <p style={{fontSize:11,color:'var(--text-2)',margin:0,lineHeight:1.45}}>{d.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+            {prefs.diet && (()=>{const m=DIET_MODES.find(d=>d.id===prefs.diet);return m?(
+              <div style={{marginTop:10,padding:'9px 13px',background:'#fdf2f4',border:'1px solid #f5b8c0',borderRadius:9}}>
+                <p style={{fontSize:12,color:'#7f1524',margin:0}}>💡 <strong>Tip for {m.name}:</strong> {m.note}</p>
+              </div>
+            ):null;})()}
+          </div>
+
+          <div className="divider" />
+
+          {/* Notes */}
+          <div>
+            <SectionLabel accent>Additional Notes</SectionLabel>
+            <textarea className="inp" style={{resize:'none'}} rows={2}
+              placeholder="e.g. avoiding spicy food, prefer lighter lunches, no cilantro, post-workout meal…"
+              value={prefs.notes} onChange={e=>setPrefs(p=>({...p,notes:e.target.value}))} />
+          </div>
+
+
+            <AllergenReference />
+          </div>
+        </section>
+
+        {/* ══════ 2. TODAY'S MENU ══════ */}
+        <section id="menu" data-section="menu" style={{display:'grid',gap:18}}>
+          <SectionTitle sub={fmtDate(viewDate)}>Today's Menu</SectionTitle>
+
+          <SafetyStats halls={halls} menus={menus} allergens={prefs.allergens} showOnlySafe={showOnlySafe} setShowOnlySafe={setShowOnlySafe} diet={prefs.diet} />
+
+          <WeekNav viewDate={viewDate} setViewDate={setViewDate} />
+
+        {/* ── Hall Selector ── */}
+        {halls.length > 0 && (
+          <div>
+            <p style={{fontSize:11,fontWeight:700,letterSpacing:'.06em',textTransform:'uppercase',color:'var(--text-2)',marginBottom:8}}>Select Your Dining Hall</p>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+              {halls.map(h=>(
+                <button key={h.id} onClick={()=>setSelectedHall(h.id)}
+                  style={{
+                    background: selectedHall===h.id?'var(--accent)':'var(--surface)',
+                    color: selectedHall===h.id?'#ffffff':'var(--text-2)',
+                    border: selectedHall===h.id?'1.5px solid var(--accent-2)':'1.5px solid var(--border)',
+                    borderRadius:9999, padding:'7px 14px', fontSize:12, fontWeight:600,
+                    cursor:'pointer', transition:'all .15s', whiteSpace:'nowrap',
+                  }}>
+                  {h.name.replace(' Dining Hall','').replace(' Hall','')}
+                </button>
+              ))}
+            </div>
+            {(()=>{
+              const h = halls.find(x=>x.id===selectedHall);
+              return h ? (
+                <div style={{marginTop:10,padding:'11px 16px',background:'var(--surface-2)',border:'1px solid var(--border)',borderRadius:12,display:'flex',flexWrap:'wrap',gap:16,alignItems:'center'}}>
+                  <span style={{fontSize:12,color:'var(--text-2)'}}>📍 {h.location}</span>
+                  <span style={{fontSize:12,color:'var(--text-2)'}}>⏰ {h.hours}</span>
+                  {h.allergenFreeStation && <span style={{background:'#f0fdf4',color:'#166534',border:'1px solid #bbf7d0',borderRadius:9999,padding:'2px 10px',fontSize:10.5,fontWeight:700}}>✓ {h.allergenFreeStation}</span>}
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
+
+        {/* ── Search ── */}
+        <div style={{position:'relative'}}>
+          <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',fontSize:14,color:'var(--text-3)',pointerEvents:'none'}}>🔍</span>
+          <input className="inp" style={{paddingLeft:34}} placeholder="Search dishes, ingredients, stations…" value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+
+        {/* Legend */}
+        <div style={{display:'flex',flexWrap:'wrap',gap:10,alignItems:'center',padding:'10px 14px',background:'var(--surface)',border:'1px solid var(--border)',borderRadius:10,boxShadow:'var(--shadow-sm)'}}>
+          <span style={{fontSize:11,fontWeight:700,color:'var(--text-2)'}}>Legend:</span>
+          <span className="badge-a">Contains allergen</span>
+          <span className="badge-cc">~Cross-contact risk</span>
+          <span className="badge-d">Dietary label</span>
+          <span style={{fontSize:11,color:'var(--text-3)'}}>· 🚫 direct allergen · ⚠️ cross-contact · ⚠ anaphylaxis risk</span>
+        </div>
+
+        {/* ── Meal period sections ── */}
+        {halls.length === 0 ? (
+          <div style={{borderRadius:18,padding:56,textAlign:'center',border:'2px dashed var(--border)',background:'var(--surface)'}}>
+            <p style={{fontSize:38,marginBottom:10}}>🍽️</p>
+            <p style={{fontFamily:'Playfair Display, serif',fontSize:18,fontWeight:700,color:'var(--text-1)',marginBottom:6}}>No dining halls yet</p>
+            <p style={{fontSize:13,color:'var(--text-3)'}}>Switch to Admin view to add halls and today's menus.</p>
+          </div>
+        ) : (
+          <div style={{display:'grid',gap:14}}>
+            {['Breakfast','Lunch','Dinner','All Day','Brain Break'].map(period => {
+              const hall = halls.find(x=>x.id===selectedHall) || halls[0];
+              const periodItems = filterItems((menus[hall?.id]||[]).filter(i=>i.mealPeriod===period));
+              if (periodItems.length===0) return null;
+              const c = MEAL_COLORS[period] || MEAL_COLORS['All Day'];
+              const isOpen = expanded[period]!==false;
+              return (
+                <div key={period} style={{borderRadius:14,overflow:'hidden',boxShadow:'var(--shadow)',border:'1px solid var(--border)'}}>
+                  <button onClick={()=>setExpanded(e=>({...e,[period]:e[period]===false}))}
+                    aria-expanded={isOpen} aria-controls={`section-${period.replace(' ','-')}`}
+                    style={{width:'100%',textAlign:'left',background:'var(--surface)',boxShadow:`inset 4px 0 0 ${c.text}`,padding:'15px 20px 15px 18px',border:'none',borderBottom:isOpen?'1px solid var(--border)':'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12}}>
+                    <div style={{display:'flex',alignItems:'center',gap:10}}>
+                      <span style={{background:c.bg,color:c.text,border:`1px solid ${c.border}`,borderRadius:9999,padding:'4px 14px',fontSize:12.5,fontWeight:700}}>{period}</span>
+                      <span style={{color:'var(--text-2)',fontSize:12,fontWeight:500}}>{periodItems.length} dish{periodItems.length!==1?'es':''}</span>
+                    </div>
+                    <span style={{color:'var(--text-3)',fontSize:11,display:'inline-block',transform:isOpen?'rotate(180deg)':'none',transition:'transform .25s'}}>▼</span>
+                  </button>
+                  {isOpen && (
+                    <div className="fade-in" style={{padding:18,background:'var(--bg)'}}>
+                      {hall?.allergenFreeStation && period!=='Brain Break' && (
+                        <div style={{background:'#f0fdf4',border:'1px solid #bbf7d0',borderRadius:10,padding:'9px 13px',marginBottom:14,display:'flex',alignItems:'center',gap:9}}>
+                          <span style={{fontSize:15}}>✅</span>
+                          <p style={{fontSize:12.5,color:'#15803d',margin:0,fontWeight:500}}>
+                            <strong>Allergen-Free Station: {hall.allergenFreeStation}</strong> — dedicated equipment, prepared separately to minimize cross-contact.
+                          </p>
+                        </div>
+                      )}
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:12}}>
+                        {periodItems.map(item=>(
+                          <DishCard key={item.id} item={item} allergens={prefs.allergens} allergenFreeStation={hall?.allergenFreeStation||''} diet={prefs.diet} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+        </section>
+
+        {/* ══════ 3. AI ASSISTANT ══════ */}
+        <section id="ai" data-section="ai" style={{display:'grid',gap:18}}>
+          <SectionTitle sub="Powered by Claude · Personalized to your allergens and diet">AI Assistant</SectionTitle>
+          <AIRecommendation halls={halls} menus={menus} prefs={prefs} />
+        </section>
+
+        {/* ══════ 4. SAFETY & INFO ══════ */}
+        <section id="safety" data-section="safety" style={{display:'grid',gap:18}}>
+          <SectionTitle>Safety & Emergency Info</SectionTitle>
+          <EmergencyCard />
+        </section>
+
+      </div>
+    );
+  };
+
+  // ─── App ──────────────────────────────────────────────────────────────────────
+
+  const App = () => {
+    const [halls, setHalls] = useState(()=>{ const s=store.get(HALLS_KEY); if(s&&s.length>0)return s; store.set(HALLS_KEY,SEED_HALLS); return SEED_HALLS; });
+    const [menus, setMenus] = useState(()=>{ const s=store.get(MENU_KEY); if(s&&Object.keys(s).length>0)return s; store.set(MENU_KEY,SEED_MENUS); return SEED_MENUS; });
+
+    return (
+      <div style={{minHeight:'100vh',background:'var(--bg)'}}>
+        <DisclaimerModal />
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+
+        {/* ── Header ── */}
+        <header style={{background:'var(--primary)',position:'sticky',top:0,zIndex:50,boxShadow:'0 1px 0 rgba(255,255,255,.06), 0 4px 24px rgba(0,0,0,.3)'}}>
+          <div style={{maxWidth:980,margin:'0 auto',padding:'0 22px',height:60,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div style={{display:'flex',alignItems:'center',gap:11}}>
+              <div style={{width:36,height:36,borderRadius:10,background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:18,color:'#ffffff',flexShrink:0,boxShadow:'0 2px 8px rgba(165,28,48,.4)'}}>D</div>
+              <div>
+                <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:17,color:'#ffffff',margin:0,lineHeight:1.1}}>DineSmart</p>
+                <p style={{fontSize:10.5,color:'#94a3b8',margin:0,lineHeight:1}}>Harvard College Dining</p>
+              </div>
+            </div>
+            <a href="admin.html"
+              style={{fontSize:12.5,fontWeight:600,color:'#94a3b8',textDecoration:'none',display:'flex',alignItems:'center',gap:5,padding:'6px 14px',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,transition:'all .15s'}}
+              onMouseOver={e=>{e.currentTarget.style.color='#ffffff';e.currentTarget.style.borderColor='rgba(255,255,255,.3)';}}
+              onMouseOut={e=>{e.currentTarget.style.color='#94a3b8';e.currentTarget.style.borderColor='rgba(255,255,255,.12)';}}>
+              Admin Portal →
+            </a>
+          </div>
+        </header>
+
+        {/* ── Pilot banner ── */}
+        <div className="pilot-banner" role="note" aria-label="Pilot version notice">
+          <strong>Demo Pilot</strong> — Not an official Harvard product · Always verify allergens with dining staff
+        </div>
+
+        {/* ── Section nav ── */}
+        <SectionNav />
+
+        {/* ── Page content ── */}
+        <main id="main-content" style={{maxWidth:980,margin:'0 auto',padding:'36px 22px 80px'}}>
+          <StudentView halls={halls} menus={menus} />
+        </main>
+
+        {/* ── Footer ── */}
+        <footer style={{borderTop:'1px solid var(--border)',padding:'20px 22px',textAlign:'center'}}>
+          <p style={{fontSize:12,color:'var(--text-3)',marginBottom:3}}>DineSmart · Harvard University Dining Services (HUDS) · Menus refresh daily · AI powered by Claude</p>
+          <p style={{fontSize:11,color:'var(--text-3)'}}>Always inform dining staff of your allergies. Cross-contact (~) indicates shared equipment, not a direct ingredient. · <a href="admin.html" style={{color:'var(--text-3)'}}>Admin Portal</a></p>
+        </footer>
+      </div>
+    );
+  };
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

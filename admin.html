@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DineSmart Admin — Harvard College Dining</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body   { font-family: 'DM Sans', system-ui, sans-serif; background: #f8f9fa; color: #111827; line-height: 1.5; }
+    h1,h2,h3,h4 { font-family: 'Playfair Display', Georgia, serif; line-height: 1.2; }
+    textarea, input, select, button { font-family: 'DM Sans', system-ui, sans-serif; }
+
+    :root {
+      --bg:          #f8f9fa;
+      --surface:     #ffffff;
+      --surface-2:   #f1f5f9;
+      --primary:     #0f172a;
+      --primary-mid: #1e293b;
+      --accent:      #A51C30;
+      --accent-2:    #7f1524;
+      --accent-pale: #fff1f2;
+      --text-1:      #111827;
+      --text-2:      #6b7280;
+      --text-3:      #9ca3af;
+      --border:      #e5e7eb;
+      --border-2:    #d1d5db;
+      --shadow-sm:   0 1px 2px rgba(0,0,0,.05);
+      --shadow:      0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.05);
+      --shadow-md:   0 4px 6px rgba(0,0,0,.07), 0 10px 30px rgba(0,0,0,.09);
+      --radius-sm:   8px;
+      --radius:      12px;
+      --radius-lg:   18px;
+    }
+
+    ::-webkit-scrollbar        { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track  { background: var(--surface-2); }
+    ::-webkit-scrollbar-thumb  { background: var(--border-2); border-radius: 3px; }
+
+    .fade-in { animation: fadeIn .25s ease; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+    .label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+    .label-accent { color: var(--accent); }
+
+    .surface   { background: var(--surface); border-radius: var(--radius-lg); box-shadow: var(--shadow); }
+    .surface-2 { background: var(--surface-2); border-radius: var(--radius); border: 1px solid var(--border); }
+
+    .inp {
+      width: 100%; padding: 9px 13px; font-size: 13.5px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text-1);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(165,28,48,.12); }
+    .inp::placeholder { color: var(--text-3); }
+
+    .pill-a {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: #fef2f2; color: #991b1b; border: 1.5px solid #fecaca;
+      border-radius: 9999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .pill-a:hover { border-color: #f87171; }
+    .pill-a.on    { background: #dc2626; color: #fff; border-color: #b91c1c; }
+
+    .pill-d {
+      display: inline-flex; align-items: center;
+      background: #f0fdf4; color: #15803d; border: 1.5px solid #bbf7d0;
+      border-radius: 9999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .pill-d:hover { border-color: #4ade80; }
+    .pill-d.on    { background: #16a34a; color: #fff; border-color: #15803d; }
+
+    .badge-a  { display:inline-flex; align-items:center; background:#fef2f2; color:#991b1b; border:1px solid #fecaca; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .badge-d  { display:inline-flex; align-items:center; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .badge-cc { display:inline-flex; align-items:center; background:#fdf2f4; color:#7f1524; border:1px solid #f5b8c0; border-radius:9999px; padding:2px 9px; font-size:11px; font-weight:600; white-space:nowrap; }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+      border: none; cursor: pointer; font-weight: 600; font-size: 13.5px;
+      border-radius: 9999px; padding: 10px 22px;
+      transition: all .15s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary   { background: var(--accent);    color: #ffffff; }
+    .btn-primary:hover { background: var(--accent-2); }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: var(--primary);   color: #f1f5f9; }
+    .btn-secondary:hover { opacity: .88; }
+    .btn-ghost   { background: var(--surface-2); color: var(--text-1); border: 1.5px solid var(--border); }
+    .btn-ghost:hover { border-color: var(--border-2); }
+    .btn-danger  { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover { background: #fee2e2; }
+
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    .tab-bar { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 9999px; width: fit-content; border: 1px solid var(--border); }
+    .tab-btn { border: none; border-radius: 9999px; padding: 7px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .15s; }
+    .tab-btn.active   { background: var(--accent); color: #ffffff; }
+    .tab-btn.inactive { background: transparent; color: var(--text-2); }
+    .tab-btn.inactive:hover { color: var(--text-1); }
+
+    *:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+    *:focus:not(:focus-visible) { outline: none; }
+
+    .skip-link {
+      position: absolute; top: -48px; left: 16px; z-index: 999;
+      background: var(--accent); color: #fff; padding: 8px 16px;
+      font-size: 14px; font-weight: 600; border-radius: 0 0 8px 8px;
+      transition: top .15s; text-decoration: none;
+    }
+    .skip-link:focus { top: 0; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+  const { useState, useEffect } = React;
+
+  // ─── Shared constants (mirrors index.html) ────────────────────────────────────
+  const ALLERGENS       = ['Wheat/Gluten','Milk/Dairy','Eggs','Tree Nuts','Peanuts','Soy','Fish','Shellfish','Sesame','Sulfites'];
+  const ANAPHYLAXIS_RISK= new Set(['Peanuts','Tree Nuts','Fish','Shellfish','Sesame']);
+  const DIETARY_LABELS  = ['Vegetarian','Vegan','Halal','Kosher','Low-Carb','High-Protein','Gluten-Free','Nut-Free'];
+  const MEAL_PERIODS    = ['Breakfast','Lunch','Dinner','All Day','Brain Break'];
+
+  const TODAY    = new Date().toISOString().split('T')[0];
+  const MENU_KEY = `dining-menus-${TODAY}`;
+  const HALLS_KEY= 'dining-halls';
+  const BRAND_VER= 'harvard-v2';
+
+  if (localStorage.getItem('dinesmart-brand') !== BRAND_VER) {
+    localStorage.removeItem(HALLS_KEY);
+    localStorage.removeItem(MENU_KEY);
+    localStorage.setItem('dinesmart-brand', BRAND_VER);
+  }
+
+  const store = {
+    get: k => { try { const v=localStorage.getItem(k); return v?JSON.parse(v):null; } catch { return null; } },
+    set: (k,v) => { try { localStorage.setItem(k,JSON.stringify(v)); } catch {} },
+  };
+
+  const uid = () => Math.random().toString(36).slice(2,10);
+  const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // ─── Seed data (keep in sync with index.html) ─────────────────────────────────
+  const SEED_HALLS = [
+    { id:'h1',  name:'Annenberg Hall',               location:'Memorial Hall, 45 Quincy St, Cambridge, MA 02138',     hours:'Mon–Fri 7:30am–8:00pm · Sat–Sun 9:00am–7:00pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h2',  name:'Adams House Dining Hall',       location:'26 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h3',  name:'Cabot House Dining Hall',       location:'Moors Hall, 60 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h4',  name:'Currier House Dining Hall',     location:'Moors Hall, 64 Linnaean St, Cambridge, MA 02138',      hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h5',  name:'Dunster House Dining Hall',     location:'945 Memorial Dr, Cambridge, MA 02138',                 hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h6',  name:'Eliot House Dining Hall',       location:'101 Dunster St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h7',  name:'Kirkland House Dining Hall',    location:'95 Dunster St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h8',  name:'Leverett House Dining Hall',    location:'28 DeWolfe St, Cambridge, MA 02138',                   hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h9',  name:'Lowell House Dining Hall',      location:'10 Holyoke Place, Cambridge, MA 02138',                hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h10', name:'Mather House Dining Hall',      location:'10 Cowperthwaite St, Cambridge, MA 02138',             hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h11', name:'Pforzheimer House Dining Hall', location:'56 Linnaean St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h12', name:'Quincy House Dining Hall',      location:'58 Plympton St, Cambridge, MA 02138',                  hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+    { id:'h13', name:'Winthrop House Dining Hall',    location:'Gore Hall, Mill St, Cambridge, MA 02138',              hours:'Mon–Fri 7:30am–7:30pm · Sat–Sun 9:00am–7:30pm',    allergenFreeStation:'Simple Servings' },
+  ];
+
+  // ─── Shared small components ──────────────────────────────────────────────────
+  const FieldLabel = ({ children }) => (
+    <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>{children}</p>
+  );
+
+  // ─── Hall Form ────────────────────────────────────────────────────────────────
+  const HallForm = ({ onAdd }) => {
+    const [form, setForm] = useState({name:'',location:'',hours:'',allergenFreeStation:''});
+    const set = k => e => setForm(f=>({...f,[k]:e.target.value}));
+    const submit = e => { e.preventDefault(); if(!form.name.trim())return; onAdd({id:uid(),...form}); setForm({name:'',location:'',hours:'',allergenFreeStation:''}); };
+    return (
+      <form onSubmit={submit} className="surface" style={{padding:22,display:'grid',gap:13}}>
+        <h3 style={{fontSize:16,color:'var(--text-1)',margin:0}}>Add New Dining Hall</h3>
+        {[
+          ['name',               'Hall Name *',          'e.g. Annenberg Hall'],
+          ['location',           'Location',             'e.g. Memorial Hall, 45 Quincy St'],
+          ['hours',              'Hours',                'e.g. Mon–Fri 7:30am–8pm · Sat–Sun 9am–7pm'],
+          ['allergenFreeStation','Allergen-Free Station','e.g. Simple Servings (leave blank if none)'],
+        ].map(([k,label,ph]) => (
+          <div key={k}>
+            <FieldLabel>{label}</FieldLabel>
+            <input className="inp" placeholder={ph} value={form[k]} onChange={set(k)} />
+          </div>
+        ))}
+        <button type="submit" className="btn btn-primary" style={{width:'100%',marginTop:2}}>+ Add Dining Hall</button>
+      </form>
+    );
+  };
+
+  // ─── Menu Item Form ───────────────────────────────────────────────────────────
+  const MenuItemForm = ({ onAdd }) => {
+    const blank = {dishName:'',ingredients:'',allergens:[],crossContactAllergens:[],dietaryLabels:[],station:'',mealPeriod:'Lunch',calories:'',proteinG:''};
+    const [form, setForm] = useState(blank);
+    const toggle = (field,val) => setForm(f=>({...f,[field]:f[field].includes(val)?f[field].filter(x=>x!==val):[...f[field],val]}));
+    const submit = e => { e.preventDefault(); if(!form.dishName.trim())return; onAdd({id:uid(),...form}); setForm(blank); };
+
+    return (
+      <form onSubmit={submit} className="surface" style={{padding:22,display:'grid',gap:16}}>
+        <h3 style={{fontSize:16,color:'var(--text-1)',margin:0}}>Add Menu Item</h3>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:11}}>
+          <div style={{gridColumn:'1/-1'}}>
+            <FieldLabel>Dish Name *</FieldLabel>
+            <input className="inp" placeholder="e.g. Grilled Salmon Fillet" value={form.dishName} onChange={e=>setForm(f=>({...f,dishName:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Station</FieldLabel>
+            <input className="inp" placeholder="e.g. The Grill" value={form.station} onChange={e=>setForm(f=>({...f,station:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Meal Period</FieldLabel>
+            <select className="inp" value={form.mealPeriod} onChange={e=>setForm(f=>({...f,mealPeriod:e.target.value}))}>
+              {MEAL_PERIODS.map(p=><option key={p}>{p}</option>)}
+            </select>
+          </div>
+          <div>
+            <FieldLabel>Calories</FieldLabel>
+            <input className="inp" type="number" placeholder="e.g. 450" value={form.calories} onChange={e=>setForm(f=>({...f,calories:e.target.value}))} />
+          </div>
+          <div>
+            <FieldLabel>Protein (g)</FieldLabel>
+            <input className="inp" type="number" placeholder="e.g. 32" value={form.proteinG} onChange={e=>setForm(f=>({...f,proteinG:e.target.value}))} />
+          </div>
+          <div style={{gridColumn:'1/-1'}}>
+            <FieldLabel>Ingredients</FieldLabel>
+            <textarea className="inp" style={{resize:'none'}} rows={2} placeholder="e.g. Flour, eggs, butter…" value={form.ingredients} onChange={e=>setForm(f=>({...f,ingredients:e.target.value}))} />
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Contains Allergens (direct)</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {ALLERGENS.map(a=>(
+              <button key={a} type="button" onClick={()=>toggle('allergens',a)} className={`pill-a ${form.allergens.includes(a)?'on':''}`}>
+                {ANAPHYLAXIS_RISK.has(a)?'⚠ ':''}{a}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <FieldLabel>Cross-Contact Risk — "May Contain"</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {ALLERGENS.map(a=>{
+              const on = form.crossContactAllergens.includes(a);
+              return (
+                <button key={a} type="button" onClick={()=>toggle('crossContactAllergens',a)}
+                  style={{display:'inline-flex',alignItems:'center',background:on?'var(--accent)':'#fdf2f4',color:on?'white':'#7f1524',border:`1.5px solid ${on?'var(--accent-2)':'#f5b8c0'}`,borderRadius:9999,padding:'4px 12px',fontSize:12,fontWeight:600,cursor:'pointer',transition:'all .15s'}}>
+                  ~{a}
+                </button>
+              );
+            })}
+          </div>
+          <p style={{fontSize:11,color:'var(--text-3)',marginTop:5}}>Allergen not in ingredients but may have contacted equipment.</p>
+        </div>
+
+        <div>
+          <FieldLabel>Dietary Labels</FieldLabel>
+          <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+            {DIETARY_LABELS.map(d=>(
+              <button key={d} type="button" onClick={()=>toggle('dietaryLabels',d)} className={`pill-d ${form.dietaryLabels.includes(d)?'on':''}`}>{d}</button>
+            ))}
+          </div>
+        </div>
+
+        <button type="submit" className="btn btn-secondary" style={{width:'100%'}}>+ Add to Menu</button>
+      </form>
+    );
+  };
+
+  // ─── Bulk Import ──────────────────────────────────────────────────────────────
+  const BulkImportForm = ({ hallId, onImport }) => {
+    const [raw,    setRaw]    = useState('');
+    const [status, setStatus] = useState(null);
+
+    const SAMPLE = JSON.stringify([
+      {dishName:'Grilled Chicken Breast', ingredients:'Chicken breast, olive oil, herbs', allergens:[], crossContactAllergens:[], dietaryLabels:['High-Protein','Gluten-Free'], station:'The Grill', mealPeriod:'Lunch', calories:260, proteinG:48},
+    ], null, 2);
+
+    const run = () => {
+      try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) throw new Error('Must be a JSON array');
+        const items = parsed.map(i => ({
+          id: uid(),
+          dishName:              String(i.dishName||'').trim(),
+          ingredients:           String(i.ingredients||''),
+          allergens:             Array.isArray(i.allergens)             ? i.allergens             : [],
+          crossContactAllergens: Array.isArray(i.crossContactAllergens) ? i.crossContactAllergens : [],
+          dietaryLabels:         Array.isArray(i.dietaryLabels)         ? i.dietaryLabels         : [],
+          station:               String(i.station||''),
+          mealPeriod:            MEAL_PERIODS.includes(i.mealPeriod)    ? i.mealPeriod            : 'Lunch',
+          calories:              i.calories  || '',
+          proteinG:              i.proteinG  || '',
+        })).filter(i => i.dishName);
+        if (!items.length) throw new Error('No valid items found');
+        onImport(items);
+        setRaw('');
+        setStatus({ok:true, msg:`✓ Imported ${items.length} item${items.length!==1?'s':''}`});
+      } catch(e) {
+        setStatus({ok:false, msg:`✗ ${e.message}`});
+      }
+    };
+
+    return (
+      <div className="surface" style={{padding:22,display:'grid',gap:14}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+          <h3 style={{fontSize:15,color:'var(--text-1)',margin:0}}>Bulk Import — JSON</h3>
+          <button type="button" onClick={()=>setRaw(SAMPLE)}
+            style={{fontSize:11.5,color:'var(--accent)',background:'none',border:'none',cursor:'pointer',fontWeight:600,textDecoration:'underline'}}>
+            Load sample
+          </button>
+        </div>
+        <textarea className="inp" rows={8} style={{resize:'vertical',fontFamily:'monospace',fontSize:12}}
+          aria-label="Paste menu JSON array"
+          placeholder={'[\n  {\n    "dishName": "...",\n    "allergens": [],\n    "mealPeriod": "Lunch"\n  }\n]'}
+          value={raw} onChange={e=>{setRaw(e.target.value);setStatus(null);}} />
+        {status && <p style={{fontSize:12.5,fontWeight:600,color:status.ok?'#15803d':'#dc2626',margin:0}}>{status.msg}</p>}
+        <button type="button" onClick={run} disabled={!raw.trim()||!hallId} className="btn btn-primary" style={{width:'100%'}}>
+          Import to Selected Hall
+        </button>
+        <p style={{fontSize:11,color:'var(--text-3)',margin:0}}>
+          Required: <code>dishName</code>, <code>mealPeriod</code>. Optional: <code>ingredients</code>, <code>allergens</code>, <code>crossContactAllergens</code>, <code>dietaryLabels</code>, <code>station</code>, <code>calories</code>, <code>proteinG</code>.
+        </p>
+      </div>
+    );
+  };
+
+  // ─── Admin View ───────────────────────────────────────────────────────────────
+  const AdminView = ({ halls, menus, setHalls, setMenus }) => {
+    const [tab, setTab] = useState('halls');
+    const [hid, setHid] = useState(halls[0]?.id||'');
+
+    const addHall    = h    => { const u=[...halls,h]; setHalls(u); store.set(HALLS_KEY,u); setHid(h.id); setTab('menu'); };
+    const rmHall     = id   => { const u=halls.filter(h=>h.id!==id); setHalls(u); store.set(HALLS_KEY,u); if(hid===id)setHid(u[0]?.id||''); const nm={...menus}; delete nm[id]; setMenus(nm); store.set(MENU_KEY,nm); };
+    const addItem    = item => { const u={...menus,[hid]:[...(menus[hid]||[]),item]}; setMenus(u); store.set(MENU_KEY,u); };
+    const rmItem     = id   => { const u={...menus,[hid]:(menus[hid]||[]).filter(i=>i.id!==id)}; setMenus(u); store.set(MENU_KEY,u); };
+    const bulkImport = items=> { const u={...menus,[hid]:[...(menus[hid]||[]),...items]}; setMenus(u); store.set(MENU_KEY,u); };
+
+    const selHall  = halls.find(h=>h.id===hid);
+    const selItems = menus[hid]||[];
+
+    return (
+      <div style={{display:'grid',gap:22}}>
+        <div className="tab-bar" role="tablist" aria-label="Admin sections">
+          <button role="tab" aria-selected={tab==='halls'} className={`tab-btn ${tab==='halls'?'active':'inactive'}`} onClick={()=>setTab('halls')}>Dining Halls</button>
+          <button role="tab" aria-selected={tab==='menu'}  className={`tab-btn ${tab==='menu'?'active':'inactive'}`}  onClick={()=>setTab('menu')}>Today's Menu</button>
+        </div>
+
+        {tab==='halls' && (
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+            <HallForm onAdd={addHall} />
+            <div style={{display:'grid',gap:10}}>
+              <p style={{fontSize:16,fontFamily:'Playfair Display, serif',fontWeight:700,color:'var(--text-1)'}}>
+                Dining Halls <span style={{fontSize:13,fontWeight:400,color:'var(--text-3)'}}>({halls.length})</span>
+              </p>
+              {halls.length===0 && <p style={{fontSize:13,color:'var(--text-3)'}}>No halls yet — add one above.</p>}
+              {halls.map(h=>(
+                <div key={h.id} className="surface" style={{padding:'14px 16px',display:'flex',alignItems:'center',gap:12}}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:14,color:'var(--text-1)',marginBottom:3}}>{h.name}</p>
+                    <p style={{fontSize:11.5,color:'var(--text-2)',marginBottom:2}}>📍 {h.location}</p>
+                    <p style={{fontSize:11.5,color:'var(--text-2)',marginBottom:h.allergenFreeStation?4:0}}>⏰ {h.hours}</p>
+                    {h.allergenFreeStation && <span style={{background:'#f0fdf4',color:'#15803d',border:'1px solid #bbf7d0',borderRadius:9999,padding:'1px 8px',fontSize:10,fontWeight:700}}>✓ {h.allergenFreeStation}</span>}
+                  </div>
+                  <div style={{display:'flex',gap:6,flexShrink:0}}>
+                    <button onClick={()=>{setHid(h.id);setTab('menu');}} className="btn btn-ghost" style={{padding:'6px 12px',fontSize:12,borderRadius:9}}>Edit Menu</button>
+                    <button onClick={()=>rmHall(h.id)} className="btn btn-danger"  style={{padding:'6px 12px',fontSize:12,borderRadius:9}}>Remove</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {tab==='menu' && (
+          <div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:18}}>
+              {halls.map(h=>(
+                <button key={h.id} onClick={()=>setHid(h.id)}
+                  style={{
+                    background: hid===h.id?'var(--accent)':'var(--surface)',
+                    color: hid===h.id?'#ffffff':'var(--text-2)',
+                    border: hid===h.id?'1.5px solid var(--accent-2)':'1.5px solid var(--border)',
+                    borderRadius:9999, padding:'7px 18px', fontSize:13, fontWeight:600,
+                    cursor:'pointer', transition:'all .15s',
+                  }}>{h.name}
+                </button>
+              ))}
+            </div>
+
+            {halls.length===0 ? (
+              <p style={{fontSize:13,color:'var(--text-3)'}}>Add a dining hall first.</p>
+            ) : (
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+                <div style={{display:'grid',gap:16}}>
+                  <MenuItemForm onAdd={addItem} />
+                  <BulkImportForm hallId={hid} onImport={bulkImport} />
+                </div>
+                <div style={{display:'grid',gap:10}}>
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+                    <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:15,color:'var(--text-1)'}}>
+                      {selHall?.name}
+                      <span style={{fontSize:12,color:'var(--text-3)',fontWeight:400,fontFamily:'DM Sans, sans-serif',marginLeft:8}}>{fmtDate(TODAY)}</span>
+                    </p>
+                    <span style={{background:'var(--surface-2)',color:'var(--text-2)',borderRadius:8,padding:'4px 10px',fontSize:12,border:'1px solid var(--border)'}}>{selItems.length} items</span>
+                  </div>
+
+                  {selItems.length===0 ? (
+                    <div style={{borderRadius:14,padding:36,textAlign:'center',border:'2px dashed var(--border)',background:'var(--surface)'}}>
+                      <p style={{fontSize:30,marginBottom:8}}>🍽️</p>
+                      <p style={{fontSize:14,fontFamily:'Playfair Display, serif',color:'var(--text-1)',marginBottom:4}}>No items yet</p>
+                      <p style={{fontSize:13,color:'var(--text-3)'}}>Add menu items using the form on the left.</p>
+                    </div>
+                  ) : (
+                    <div style={{display:'grid',gap:8,maxHeight:600,overflowY:'auto',paddingRight:4}}>
+                      {selItems.map(item=>(
+                        <div key={item.id} className="surface" style={{padding:'12px 14px',display:'flex',alignItems:'flex-start',gap:10}}>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:5,flexWrap:'wrap'}}>
+                              <span style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:13.5,color:'var(--text-1)'}}>{item.dishName}</span>
+                              <span style={{fontSize:11,color:'var(--text-3)'}}>{item.station} · {item.mealPeriod}</span>
+                            </div>
+                            <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                              {item.allergens.map(a=><span key={a} className="badge-a">{a}</span>)}
+                              {(item.crossContactAllergens||[]).map(a=><span key={a} className="badge-cc">~{a}</span>)}
+                              {item.dietaryLabels.map(d=><span key={d} className="badge-d">{d}</span>)}
+                            </div>
+                          </div>
+                          <button onClick={()=>rmItem(item.id)} className="btn btn-danger" aria-label={`Remove ${item.dishName}`} style={{borderRadius:8,width:28,height:28,padding:0,fontSize:12,flexShrink:0}}>✕</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // ─── App ──────────────────────────────────────────────────────────────────────
+  const App = () => {
+    const [halls, setHalls] = useState(()=>{ const s=store.get(HALLS_KEY); if(s&&s.length>0)return s; store.set(HALLS_KEY,SEED_HALLS); return SEED_HALLS; });
+    const [menus, setMenus] = useState(()=>{ const s=store.get(MENU_KEY); if(s&&Object.keys(s).length>0)return s; return {}; });
+
+    return (
+      <div style={{minHeight:'100vh',background:'var(--bg)'}}>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+
+        {/* ── Header ── */}
+        <header style={{background:'var(--primary)',position:'sticky',top:0,zIndex:50,boxShadow:'0 1px 0 rgba(255,255,255,.06), 0 4px 24px rgba(0,0,0,.3)'}}>
+          <div style={{maxWidth:1100,margin:'0 auto',padding:'0 22px',height:60,display:'flex',alignItems:'center',justifyContent:'space-between',gap:16}}>
+            <div style={{display:'flex',alignItems:'center',gap:11}}>
+              <div style={{width:36,height:36,borderRadius:10,background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:18,color:'#ffffff',flexShrink:0}}>D</div>
+              <div>
+                <p style={{fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:17,color:'#ffffff',margin:0,lineHeight:1.1}}>DineSmart Admin</p>
+                <p style={{fontSize:10.5,color:'#94a3b8',margin:0,lineHeight:1}}>Harvard University Dining Services</p>
+              </div>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <span style={{fontSize:12,color:'#64748b'}}>{fmtDate(TODAY)}</span>
+              <a href="index.html"
+                style={{fontSize:12.5,fontWeight:600,color:'#94a3b8',textDecoration:'none',padding:'6px 14px',border:'1px solid rgba(255,255,255,.12)',borderRadius:8,transition:'all .15s'}}
+                onMouseOver={e=>{e.currentTarget.style.color='#ffffff';e.currentTarget.style.borderColor='rgba(255,255,255,.3)';}}
+                onMouseOut={e=>{e.currentTarget.style.color='#94a3b8';e.currentTarget.style.borderColor='rgba(255,255,255,.12)';}}>
+                ← Student View
+              </a>
+            </div>
+          </div>
+        </header>
+
+        {/* ── Admin notice ── */}
+        <div style={{background:'#fef2f2',borderBottom:'1px solid #fecaca',padding:'7px 22px',textAlign:'center',fontSize:12,color:'#991b1b',fontWeight:500}}>
+          <strong>Admin Portal</strong> — Changes apply immediately · Accessible to students on the student view · Handle allergen data with care
+        </div>
+
+        {/* ── Content ── */}
+        <main id="main-content" style={{maxWidth:1100,margin:'0 auto',padding:'36px 22px 80px'}}>
+          <div style={{marginBottom:28}}>
+            <h1 style={{fontSize:28,color:'var(--text-1)',marginBottom:6}}>Admin Dashboard</h1>
+            <p style={{fontSize:14,color:'var(--text-2)'}}>Harvard University Dining Services (HUDS) · Manage halls, menus, and allergen data</p>
+          </div>
+          <AdminView halls={halls} menus={menus} setHalls={setHalls} setMenus={setMenus} />
+        </main>
+
+        <footer style={{borderTop:'1px solid var(--border)',padding:'20px 22px',textAlign:'center'}}>
+          <p style={{fontSize:12,color:'var(--text-3)'}}>DineSmart Admin · Harvard University Dining Services · All changes saved to local storage · <a href="index.html" style={{color:'var(--text-3)'}}>← Back to Student View</a></p>
+        </footer>
+      </div>
+    );
+  };
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
