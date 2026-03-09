@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — DineSmart</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', system-ui, sans-serif; background: #f8f9fa; color: #111827; line-height: 1.6; }
+    h1,h2,h3 { font-family: 'Playfair Display', Georgia, serif; line-height: 1.2; }
+    :root {
+      --primary: #0f172a; --accent: #A51C30; --text-1: #111827;
+      --text-2: #6b7280; --border: #e5e7eb; --surface: #ffffff;
+    }
+    header {
+      background: var(--primary); position: sticky; top: 0; z-index: 50;
+      box-shadow: 0 1px 0 rgba(255,255,255,.06), 0 4px 24px rgba(0,0,0,.3);
+    }
+    .header-inner {
+      max-width: 780px; margin: 0 auto; padding: 0 22px; height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark {
+      width: 34px; height: 34px; border-radius: 9px; background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Playfair Display', serif; font-weight: 700; font-size: 17px; color: #fff;
+    }
+    .logo-text { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 16px; color: #fff; }
+    .back-link {
+      font-size: 12.5px; font-weight: 600; color: #94a3b8; text-decoration: none;
+      padding: 6px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 8px;
+      transition: all .15s;
+    }
+    .back-link:hover { color: #fff; border-color: rgba(255,255,255,.3); }
+    .container { max-width: 780px; margin: 0 auto; padding: 52px 22px 80px; }
+    .hero { margin-bottom: 44px; padding-bottom: 32px; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: 36px; color: var(--text-1); margin-bottom: 10px; }
+    .meta { font-size: 13px; color: var(--text-2); }
+    .meta strong { color: var(--accent); }
+    .section { margin-bottom: 36px; }
+    .section h2 { font-size: 20px; color: var(--text-1); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .section p { font-size: 14px; color: #374151; margin-bottom: 10px; }
+    .section ul { font-size: 14px; color: #374151; padding-left: 20px; margin-bottom: 10px; }
+    .section ul li { margin-bottom: 5px; }
+    .warning {
+      background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px;
+      padding: 16px 18px; margin-bottom: 32px;
+    }
+    .warning p { font-size: 13px; color: #991b1b; margin: 0; }
+    .warning strong { font-weight: 700; }
+    .notice {
+      background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px;
+      padding: 16px 18px; margin-bottom: 32px;
+    }
+    .notice p { font-size: 13px; color: #92400e; margin: 0; }
+    footer { border-top: 1px solid var(--border); padding: 20px 22px; text-align: center; }
+    footer p { font-size: 12px; color: var(--text-2); }
+    footer a { color: var(--text-2); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-mark">D</div>
+      <span class="logo-text">DineSmart</span>
+    </a>
+    <a href="index.html" class="back-link">← Student View</a>
+  </div>
+</header>
+
+<div class="container">
+  <div class="hero">
+    <h1>Terms of Service</h1>
+    <p class="meta">Last updated: <strong>March 2026</strong> &nbsp;·&nbsp; DineSmart Pilot Program &nbsp;·&nbsp; Harvard College</p>
+  </div>
+
+  <div class="warning">
+    <p><strong>Allergen Warning:</strong> DineSmart is a convenience tool only. Never rely solely on this application when making food decisions involving severe allergies or medical dietary requirements. Always verify with Harvard dining staff directly.</p>
+  </div>
+
+  <div class="notice">
+    <p><strong>Pilot Program:</strong> DineSmart is an independent pilot and is not an official Harvard University service. Use of this application is voluntary.</p>
+  </div>
+
+  <div class="section">
+    <h2>1. Acceptance of Terms</h2>
+    <p>By accessing or using DineSmart ("the Service"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Service.</p>
+    <p>These terms apply to all users of DineSmart, including Harvard College students and dining hall administrators.</p>
+  </div>
+
+  <div class="section">
+    <h2>2. Description of Service</h2>
+    <p>DineSmart is an independent web application that:</p>
+    <ul>
+      <li>Displays dining hall menu and allergen information entered by administrators</li>
+      <li>Allows users to save personal dietary preferences locally in their browser</li>
+      <li>Provides AI-generated meal recommendations via Anthropic's Claude API</li>
+    </ul>
+    <p>DineSmart is not affiliated with, endorsed by, or operated by Harvard University or Harvard University Dining Services (HUDS).</p>
+  </div>
+
+  <div class="section">
+    <h2>3. No Medical or Dietary Advice</h2>
+    <p>DineSmart does not provide medical advice, dietary advice, or allergy counseling. All information provided through this Service is for general informational purposes only.</p>
+    <ul>
+      <li>Allergen information displayed may be incomplete, out of date, or inaccurate.</li>
+      <li>Menu items and ingredients change frequently. Always verify with dining staff.</li>
+      <li>AI-generated recommendations are not a substitute for professional dietary guidance.</li>
+      <li>Students with severe food allergies, anaphylaxis risk, or medical dietary requirements should consult HUDS nutrition staff and their own healthcare providers.</li>
+    </ul>
+    <p><strong>You use this Service at your own risk. We are not liable for any adverse health outcomes resulting from reliance on information provided by DineSmart.</strong></p>
+  </div>
+
+  <div class="section">
+    <h2>4. User Responsibilities</h2>
+    <p>By using DineSmart, you agree to:</p>
+    <ul>
+      <li>Use the Service only for its intended purpose of navigating dining hall menus</li>
+      <li>Not attempt to circumvent rate limits, security measures, or access controls</li>
+      <li>Not submit harmful, offensive, or misleading content through the AI chat feature</li>
+      <li>Not use the Service to collect information about other users</li>
+      <li>Verify all allergen and nutritional information with Harvard dining staff before consuming food</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>5. Administrator Responsibilities</h2>
+    <p>Users with access to the admin portal additionally agree to:</p>
+    <ul>
+      <li>Enter allergen and menu data accurately and completely to the best of their knowledge</li>
+      <li>Promptly update or remove menu information that is incorrect or outdated</li>
+      <li>Not share admin credentials with unauthorized individuals</li>
+      <li>Understand that allergen errors in the admin portal could directly harm students with food allergies</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>6. AI-Generated Content</h2>
+    <p>The meal recommendation feature uses Anthropic's Claude AI. By using this feature:</p>
+    <ul>
+      <li>You understand that AI responses may be inaccurate, incomplete, or inappropriate</li>
+      <li>You agree not to rely on AI recommendations for safety-critical food decisions</li>
+      <li>You acknowledge that your messages are processed by Anthropic, Inc. per their terms and privacy policy</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>7. Intellectual Property</h2>
+    <p>The DineSmart application, including its design, code, and content, is proprietary. You may not copy, modify, distribute, or create derivative works without written permission.</p>
+    <p>Harvard University trademarks, including the Harvard name and shield, are the property of Harvard University and are used here solely to describe the pilot context. DineSmart makes no claim to Harvard's intellectual property.</p>
+  </div>
+
+  <div class="section">
+    <h2>8. Disclaimers and Limitation of Liability</h2>
+    <p>THE SERVICE IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED. WE DISCLAIM ALL WARRANTIES INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+    <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, DINESMART SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO PERSONAL INJURY, ALLERGIC REACTIONS, OR HEALTH CONSEQUENCES ARISING FROM USE OF THIS SERVICE.</p>
+  </div>
+
+  <div class="section">
+    <h2>9. Modifications to the Service</h2>
+    <p>We reserve the right to modify, suspend, or discontinue the Service at any time without notice. We are not liable to you or any third party for any such modification, suspension, or discontinuation.</p>
+  </div>
+
+  <div class="section">
+    <h2>10. Governing Law</h2>
+    <p>These Terms are governed by the laws of the Commonwealth of Massachusetts, without regard to conflict of law principles. Any disputes arising from these Terms shall be resolved in courts located in Cambridge, Massachusetts.</p>
+  </div>
+
+  <div class="section">
+    <h2>11. Contact</h2>
+    <p>Questions about these Terms of Service:</p>
+    <p><a href="mailto:legal@dinesmart.app" style="color:var(--accent)">legal@dinesmart.app</a></p>
+  </div>
+</div>
+
+<footer>
+  <p>DineSmart · Independent Pilot Program · <a href="index.html">Student View</a> · <a href="privacy.html">Privacy Policy</a></p>
+</footer>
+
+</body>
+</html>
