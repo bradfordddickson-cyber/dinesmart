@@ -124,6 +124,68 @@
 <script type="text/babel" data-presets="react">
   const { useState, useEffect } = React;
 
+  // ─── Auth gate ────────────────────────────────────────────────────────────────
+  const AUTH_KEY = 'dinesmart-admin-token';
+
+  const LoginGate = ({ onAuth }) => {
+    const [pw,  setPw]  = useState('');
+    const [err, setErr] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    const submit = async e => {
+      e.preventDefault();
+      setErr(''); setLoading(true);
+      try {
+        const res = await fetch('/api/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: pw }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          sessionStorage.setItem(AUTH_KEY, data.token);
+          onAuth();
+        } else {
+          setErr(data.error || 'Incorrect password.');
+          setPw('');
+        }
+      } catch {
+        setErr('Could not reach server. Try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return (
+      <div style={{minHeight:'100vh',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center',padding:24}}>
+        <div className="surface" style={{width:'100%',maxWidth:380,padding:36,display:'grid',gap:20}}>
+          <div style={{textAlign:'center'}}>
+            <div style={{width:52,height:52,borderRadius:14,background:'var(--accent)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Playfair Display, serif',fontWeight:700,fontSize:26,color:'#fff',margin:'0 auto 14px'}}>D</div>
+            <h1 style={{fontSize:22,color:'var(--text-1)',marginBottom:4}}>Admin Portal</h1>
+            <p style={{fontSize:13,color:'var(--text-2)'}}>Harvard University Dining Services</p>
+          </div>
+          <form onSubmit={submit} style={{display:'grid',gap:14}}>
+            <div>
+              <p style={{fontSize:12,fontWeight:600,color:'var(--text-2)',marginBottom:5}}>Admin Password</p>
+              <input
+                className="inp" type="password" placeholder="Enter admin password"
+                value={pw} onChange={e=>{setPw(e.target.value);setErr('');}}
+                autoFocus required
+              />
+            </div>
+            {err && <p style={{fontSize:12.5,color:'#dc2626',fontWeight:600,margin:0}}>{err}</p>}
+            <button type="submit" className="btn btn-primary" style={{width:'100%'}} disabled={loading||!pw}>
+              {loading ? 'Verifying…' : 'Sign In'}
+            </button>
+          </form>
+          <p style={{fontSize:11,color:'var(--text-3)',textAlign:'center',margin:0}}>
+            Student? <a href="index.html" style={{color:'var(--accent)'}}>Go to student view →</a>
+          </p>
+        </div>
+      </div>
+    );
+  };
+
   // ─── Shared constants (mirrors index.html) ────────────────────────────────────
   const ALLERGENS       = ['Wheat/Gluten','Milk/Dairy','Eggs','Tree Nuts','Peanuts','Soy','Fish','Shellfish','Sesame','Sulfites'];
   const ANAPHYLAXIS_RISK= new Set(['Peanuts','Tree Nuts','Fish','Shellfish','Sesame']);
@@ -450,8 +512,11 @@
 
   // ─── App ──────────────────────────────────────────────────────────────────────
   const App = () => {
+    const [authed, setAuthed] = useState(() => !!sessionStorage.getItem(AUTH_KEY));
     const [halls, setHalls] = useState(()=>{ const s=store.get(HALLS_KEY); if(s&&s.length>0)return s; store.set(HALLS_KEY,SEED_HALLS); return SEED_HALLS; });
     const [menus, setMenus] = useState(()=>{ const s=store.get(MENU_KEY); if(s&&Object.keys(s).length>0)return s; return {}; });
+
+    if (!authed) return <LoginGate onAuth={() => setAuthed(true)} />;
 
     return (
       <div style={{minHeight:'100vh',background:'var(--bg)'}}>
